@@ -1,0 +1,171 @@
+\documentclass[pdftex,10pt,b5paper,twoside]{book}
+\usepackage[lmargin=25mm,rmargin=25mm,tmargin=27mm,bmargin=30mm]{geometry}
+
+\input{LaTeX_settings}
+
+\begin{document}
+
+En $D$-dimensjonal kvantebrønn med $N$ partikler har Hamilton-operator
+
+\begin{equation}
+\mathbf{H}[\vec{R}] = \sum\limits_i^N \left(U[\vec{r}_i] -\frac{\hbar^2}{2m}\vec{\nabla}_i^2 \right) + \sum\limits_i^N\sum\limits_{j > i}^N V[\vec{r}_i,\vec{r}_j]
+\end{equation}
+i posisjonsbasis, med
+\begin{align}
+U[\vec{r}_i] &= \frac{m\omega^2}{2}\left(x_i^2+y_i^2+\lambda^2z_i^2\right), \\
+V[\vec{r}_i,\vec{r}_j] &= V[\Delta{r}_{ij}] =\begin{cases} \infty & \text{for $\Delta{r}_{ij} < a$} \\
+0 & \text{for $\Delta{r}_{ij} \geq a$} \end{cases},
+\end{align}
+der $U$ altså er kvantebrønn-feltet mens $V$ beskriver en hard veksling mellom partiklene som hindrer at de overlapper. Her er $\vec{r}_i$ og $\vec{\nabla}_i$ henholdsvis posisjonen og den posisjonsderiverte til hver partikkel $i$, mens $\vec{R}$ er den samla posisjonsvektoren for hele systemet, $a$ er en karakteristisk radius for partiklene, $m$ er partiklenes masse, $\omega$ er kvantebrønnstyrken og $\lambda$ er en parameter som eventuelt gjør kvantebrønnen elliptisk. Videre er
+\begin{align}
+\Delta\vec{r}_{ij} &= \vec{r}_i-\vec{r}_j \\
+\Longrightarrow \Delta{r}_{ij} &= \sqrt{\left(\vec{r}_i-\vec{r}_j\right)^2}
+\end{align}
+avstandsvektoren mellom partiklene $i$ og $j$.
+
+Innfør først $\sqrt{\frac{\hbar}{m\omega}}$ som lengdemål og $\hbar\omega$ som energimål ved å spalte ut
+\begin{align}
+a &= \sqrt{\frac{\hbar}{m\omega}}a' \\
+\vec{r}_i &= \sqrt{\frac{\hbar}{m\omega}}\vec{r'}_i, \\
+\Longrightarrow \Delta\vec{r}_{ij} &= \sqrt{\frac{\hbar}{m\omega}}\Delta\vec{r'}_{ij}, \\
+\vec{\nabla}_i &= \sqrt{\frac{m\omega}{\hbar}}\vec{\nabla'}_i, \\
+\mathbf{H} &= \hbar\omega\mathbf{H}'.
+\end{align}
+De merka størrelsene $\vec{r'}_i$, $\vec{\nabla'}_i$,  $\Delta\vec{r'}_{ij}$ og $\mathbf{H}'$ er dimensjonsløse, og den merka Hamilton-operatoren tar formen
+\begin{equation}
+\mathbf{H'}[\vec{R'}] = \sum\limits_i^N \frac{1}{2}\left( U'[\vec{r'}_i] - \vec{\nabla'}_i^2\right) + \sum\limits_i^N\sum\limits_{j > i}^N V'[\Delta{r'}_{ij}]
+\end{equation}
+med
+\begin{align}
+U'[\vec{r'}_i] &= x_i^2+y_i^2+\lambda^2z_i^2, \\
+V'[\Delta{r'}_{ij}] &=\begin{cases} \infty & \text{for $\Delta{r'}_{ij} < a'$} \\
+0 & \text{for $\Delta{r'}_{ij} \geq a'$} \end{cases}.
+\end{align}
+Vi ser heretter bort ifra merkene og behandler de dimensjonsløse ligningene videre.
+
+Sett nå en prøvefunksjon på formen
+\begin{equation}
+\Psi[\vec{R}] = \prod\limits_i^N g[\vec{r}_i] \prod\limits_j^N\prod\limits_{k > j}^N f[\vec{r}_j,\vec{r}_k]
+\end{equation}
+med
+\begin{align}
+g[\vec{r}_i] &= \epsilon^{-\alpha\left(x_i^2+y_i^2+ \beta z_i^2\right)}, \\
+f[\vec{r}_i,\vec{r}_j] &= f[\Delta{r}_{ij}] = \begin{cases} 0 & \text{for $\Delta{r}_{ij} < a$} \\
+1-\frac{a}{\Delta{r}_{ij}} & \text{for $\Delta{r}_{ij} \geq a$} \end{cases}.
+\end{align}
+Her er $\alpha$ og $\beta$ variabler til rådighet i jakta på grunnenergien.
+
+Etter variasjonsmetoden er grunnenergien styrt av
+\begin{equation}
+E_G \leq \ev{\mathbf{H}}{\Psi}
+\end{equation}
+for enhver tilstand $\ket{\Psi}$. I posisjonsbasis kan skranken skrives
+\begin{equation}
+\ev{\mathbf{H}}{\Psi} = \idotsint \Psi^*[\vec{R}]\mathbf{H}[\vec{R}]\Psi[\vec{R}]\delta^{3N}R = \idotsint \abs{\Psi[\vec{R}]}^2\frac{\mathbf{H}[\vec{R}]\Psi[\vec{R}]}{\Psi[\vec{R}]} \delta^{3N}R, \nonumber
+\end{equation}
+så vi kan altså innføre en lokal energi
+\begin{equation}
+E_L[\vec{R}] = \frac{\mathbf{H}[\vec{R}]\Psi[\vec{R}]}{\Psi[\vec{R}]}
+\end{equation}
+og betrakte skranken $\bra{\Psi}\mathbf{H}\ket{\Psi}$ som forventningsverdien til denne lokale energien ved en sjansfordeling $\abs{\Psi[\vec{R}]}^2$, altså
+\begin{equation}
+E_G \leq \idotsint \abs{\Psi[\vec{R}]}^2E_L[\vec{R}] \delta^{3N}R = \ev{E_L}.
+\end{equation}
+Det er altså nyttig å se nærmere på $E_L$ og prøve å finne et analytisk uttrykk for denne.
+
+Potergileddene $U$ og $V$ i Hamilton-operatoren gir direkte bidrag til $E_L$, så det er kinergileddet, nærmere bestemt den dobbeltderiverte $\vec{\nabla}_i^2\Psi$ som må beregnes nærmere. Skriv
+\begin{equation}
+\Psi[\vec{R}] = G[\vec{R}]F[\vec{R}]
+\end{equation}
+med
+\begin{align}
+G[\vec{R}] &= \prod\limits_i^N g[\vec{r}_i] \\
+F[\vec{R}] &= \prod\limits_j^N\prod\limits_{k > j}^N f[\Delta{r}_{jk}] 
+\end{align}
+og merk at
+\begin{equation}
+\vec{\nabla}_i^2\Psi = \vec{\nabla}_i\cdot\left(\vec{\nabla}_i G F + G \vec{\nabla}_i F\right) = \vec{\nabla}_i^2 G F + 2\vec{\nabla}_i G \cdot \vec{\nabla}_i F + G \vec{\nabla}_i^2 F. \label{Lap_Psi_1} 
+\end{equation}
+Vi må derfor finne de deriverte av henholdsvis $G$ og $F$ for å få et uttrykk for $E_L$. De deriverte av $G$ er 
+\begin{align}
+\vec{\nabla}_i G &= \vec{\nabla}_i g[\vec{r}_i] \prod\limits_{j \neq i}^N g[\vec{r_j}] \\
+\Longrightarrow \vec{\nabla}_i^2 G &= \vec{\nabla}_i^2 g[\vec{r}_i] \prod\limits_{j \neq i}^N g[\vec{r_j}],
+\end{align}
+og ettersom
+\begin{align}
+\vec{\nabla}_i g[\vec{r}_i] &= -2\alpha\Big(\vec{r}_i+(\beta-1)\vec{z}_i\Big)g[\vec{r}_i] \\
+\Longrightarrow \vec{\nabla}_i^2 g[\vec{r}_i]
+&= -2\alpha\left(\Big(D+(\beta-1)\Big)g[\vec{r}_i]+\Big(\vec{r}_i+(\beta-1)\vec{z}_i\Big)\cdot\vec{\nabla}_i g[\vec{r}_i]\right) \nonumber\\
+\Longrightarrow \vec{\nabla}_i^2 g[\vec{r}_i]
+&= 2\alpha\left(2\alpha\Big(\vec{r}_i+(\beta-1)\vec{z}_i\Big)^2-\Big(D+(\beta-1)\Big)\right)g[\vec{r}_i]
+\end{align}
+så blir disse ganske enkelt
+\begin{align}
+&\vec{\nabla}_i G = -2\alpha\Big(\vec{r}_i+(\beta-1)\vec{z}_i\Big)G, \label{grad_G}\\
+&\vec{\nabla}_i^2G = 2\alpha\left(2\alpha\Big(\vec{r}_i+(\beta-1)\vec{z}_i\Big)^2-\Big(D+(\beta-1)\Big)\right)G. \label{Lap_G}
+\end{align}
+For å finne de deriverte av $F$ skriver vi om funksjonen på eksponentialform,
+\begin{equation}
+F[\vec{R}] = \epsilon^{\sum\limits_{j}^N\sum\limits_{k > j}^N \ln f[\Delta{r}_{jk}]},
+\end{equation}
+og ser at
+\begin{align}
+\vec{\nabla}_i F &= \sum\limits_{j \neq i}^N \left(\frac{\vec{\nabla}_i f[\Delta{r}_{ij}]}{f[\Delta{r}_{ij}]}\right) F \\
+\Longrightarrow \vec{\nabla}_i^2 F &= \sum\limits_{j \neq i}^N \left(\vec{\nabla}_i\cdot\left[\frac{\vec{\nabla}_i f[\Delta{r}_{ij}]}{f[\Delta{r}_{ij}]}\right]\right) F + \sum\limits_{j \neq i}^N \left(\frac{\vec{\nabla}_i f[\Delta{r}_{ij}]}{f[\Delta{r}_{ij}]}\right)\cdot \vec{\nabla}_i F \nonumber\\
+&= \sum\limits_{j \neq i}^N \left(\frac{\vec{\nabla}_i^2 f[\Delta{r}_{ij}]}{f[\Delta{r}_{ij}]} - \frac{\left(\vec{\nabla}_i f[\Delta{r}_{ij}]\right)^2}{f^2[\Delta{r}_{ij}]}\right) F + \sum\limits_{j \neq i}^N \sum\limits_{k \neq i}^N \left(\frac{\vec{\nabla}_i f[\Delta{r}_{ij}] \cdot\vec{\nabla}_i f[\Delta{r}_{ik}]}{f[\Delta{r}_{ij}]f[\Delta{r}_{ik}]}\right) F \nonumber\\
+&= \sum\limits_{j \neq i}^N \left(\frac{\vec{\nabla}_i^2 f[\Delta{r}_{ij}]}{f[\Delta{r}_{ij}]} + \sum\limits_{{k \neq i}\atop{k \neq j}}^N \frac{\vec{\nabla}_i f[\Delta{r}_{ij}] \cdot\vec{\nabla}_i f[\Delta{r}_{ik}]}{f[\Delta{r}_{ij}]f[\Delta{r}_{ik}]}\right) F.
+\end{align}
+De deriverte av $f$ er
+\begin{align}
+\vec{\nabla}_i f[\Delta{r}_{ij}] &= \frac{a\Delta\vec{r}_{ij}}{\Delta{r}_{ij}^3} \\
+\Longrightarrow \vec{\nabla}_i^2 f[\Delta{r}_{ij}]
+&= \frac{aD}{\Delta{r}_{ij}^3}-\frac{3a\Delta\vec{r}_{ij}^2}{\Delta{r}_{ij}^5} \nonumber\\
+&= \frac{a(D-3)}{\Delta{r}_{ij}^3}
+\end{align}
+så lenge alle $\Delta{r}_{ij} \geq a$. Merk at
+\begin{equation}
+\Delta{r}_{ij} f[\Delta{r}_{ij}] = \Delta{r}_{ij}-a
+\end{equation}
+og dermed blir
+\begin{align}
+\vec{\nabla}_i F &= \sum\limits_{j \neq i}^N \left(\frac{a\Delta\vec{r}_{ij}}{\Delta{r}_{ij}^2(\Delta{r}_{ij}-a)}\right) F, \label{grad_F}\\
+\vec{\nabla}_i^2 F &= \sum\limits_{j \neq i}^N \left(\frac{a(D-3)}{\Delta{r}_{ij}^2(\Delta{r}_{ij}-a)} + \sum\limits_{{k \neq i}\atop{k \neq j}}^N \frac{a^2 \Delta\vec{r}_{ij} \cdot \Delta\vec{r}_{ik}}{\Delta{r}_{ij}^2(\Delta{r}_{ij}-a) \Delta{r}_{ik}^2(\Delta{r}_{ik}-a)}\right) F. \label{Lap_F}
+\end{align}
+
+Ligning \eqref{Lap_Psi_1} tar nå formen
+\begin{align}
+\vec{\nabla}_i^2\Psi &= 2\alpha\left(2\alpha\Big(\vec{r}_i+(\beta-1)\vec{z}_i\Big)^2-\Big(D+(\beta-1)\Big)\right) \Psi \nonumber\\
+&- 4\alpha\Big(\vec{r}_i+(\beta-1)\vec{z}_i\Big) \cdot \sum\limits_{j \neq i}^N \left(\frac{a\Delta\vec{r}_{ij}}{\Delta{r}_{ij}^2(\Delta{r}_{ij}-a)}\right) \Psi \nonumber\\
+&+ \sum\limits_{j \neq i}^N \left(\frac{a(D-3)}{\Delta{r}_{ij}^2(\Delta{r}_{ij}-a)} + \sum\limits_{{k \neq i}\atop{k \neq j}}^N \frac{a^2 \Delta\vec{r}_{ij} \cdot \Delta\vec{r}_{ik}}{\Delta{r}_{ij}^2(\Delta{r}_{ij}-a) \Delta{r}_{ik}^2(\Delta{r}_{ik}-a)}\right) \Psi \nonumber\\
+\Longrightarrow \frac{\vec{\nabla}_i^2\Psi}{\Psi} &= 2\alpha\left(2\alpha\Big(\vec{r}_i+(\beta-1)\vec{z}_i\Big)^2-\Big(D+(\beta-1)\Big)\right) \nonumber\\
+&+ \sum\limits_{j \neq i}^N \frac{a(D-3) - 4\alpha\Big(\vec{r}_i+(\beta-1)\vec{z}_i\Big) \cdot a\Delta\vec{r}_{ij}}{\Delta{r}_{ij}^2(\Delta{r}_{ij}-a)} \nonumber\\
+&+ \sum\limits_{j \neq i}^N \sum\limits_{{k \neq i}\atop{k \neq j}}^N \frac{a^2 \Delta\vec{r}_{ij} \cdot \Delta\vec{r}_{ik}}{\Delta{r}_{ij}^2(\Delta{r}_{ij}-a) \Delta{r}_{ik}^2(\Delta{r}_{ik}-a)}
+\end{align}
+og ved å innføre størrelsene
+\begin{align}
+\vec{q}[\vec{r}_i] &= -4\alpha\Big(\vec{r}_i+(\beta-1)\vec{z}_i\Big), \\
+d[\Delta{r}_{ij}] &= \Delta{r}_{ij}^2(\Delta{r}_{ij}-a), \\
+\vec{s}[\Delta\vec{r}_{ij}] &= \frac{a\Delta\vec{r}_{ij}}{2d[\Delta{r}_{ij}]}, \\
+\end{align}
+følger det at det totale utrykket for den lokale energien blir
+\begin{align}
+E_L[\vec{R}] &= \alpha N\Big(D+(\beta-1)\Big) + \sum\limits_i^N \frac{1}{2}\left( U[\vec{r}_i] - \frac{1}{4}\vec{q}^2[\vec{r}_i] \right) \nonumber\\
+&- \sum\limits_i^N \sum\limits_{j \neq i}^N \left( \frac{a(D-3)}{2d[\Delta{r}_{ij}]} + \vec{q}[\vec{r}_i] \cdot \vec{s}[\Delta\vec{r}_{ij}] \right) - 2\sum\limits_i^N \sum\limits_{j \neq i}^N \sum\limits_{{k \neq i}\atop{k \neq j}}^N \vec{s}[\Delta\vec{r}_{ij}] \cdot \vec{s}[\Delta\vec{r}_{ik}] \nonumber\\
+&+ \sum\limits_i^N \sum_{j>i}^N V[\Delta{r}_{ij}].
+\end{align}
+En annen interessant størrelse for systemet er den såkalte kvantekrafta
+\begin{equation}
+\vec{Q}[\vec{R}] = \frac{2\vec{\nabla}\Psi[\vec{R}]}{\Psi[\vec{R}]}
+\end{equation}
+Fra ligningene over følger det også at
+\begin{align}
+\vec{\nabla}_i\Psi &= \vec{\nabla}_i G F + G \vec{\nabla}_i F \nonumber\\
+&= -2\alpha\Big(\vec{r}_i+(\beta-1)\vec{z}_i\Big)\Psi + \sum\limits_{j \neq i}^N \left(\frac{a\Delta\vec{r}_{ij}}{\Delta{r}_{ij}^2(\Delta{r}_{ij}-a)}\right) \Psi \nonumber\\
+\Longrightarrow \frac{\vec{\nabla}_i\Psi}{\Psi} &= -2\alpha\Big(\vec{r}_i+(\beta-1)\vec{z}_i\Big) + \sum\limits_{j \neq i}^N \left(\frac{a\Delta\vec{r}_{ij}}{\Delta{r}_{ij}^2(\Delta{r}_{ij}-a)}\right),
+\end{align}
+og dermed blir uttrykket for kvantekrafta
+\begin{equation}
+\vec{Q}[\vec{R}] = \sum\limits_i^N \vec{q}[\vec{r}_i] + 4\sum\limits_i^N\sum\limits_{j \neq i}^N \vec{s}[\Delta\vec{r}_{ij}].
+\end{equation}
+med de innførte størrelsene.
+\end{document}

@@ -142,7 +142,7 @@ function find_VMC_energy(well::QuantumWell, cycles::Int64; algorithm::String="br
             ε²[c] = ε²[c-1]
             return
         end
-        U(r::Vector{Float64}) = [1,1,λ][1:D]⋅(r.^2)
+        U(r::Vector{Float64}) = [1,1,λ^2][1:D]⋅(r.^2)
         q(r::Vector{Float64}) = 4α*([1,1,β][1:D].*r)
         d(Δr::Float64) = Δr^2*(Δr-a)
         s(Δr::Vector{Float64}) = (a/2d(norm(Δr)))*Δr

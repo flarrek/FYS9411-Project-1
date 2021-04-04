@@ -49,11 +49,12 @@ function find_VMC_energy(well::QuantumWell, cycles::Int64; algorithm::String="br
     ε::Vector{Float64} = zeros(C) # are the sampled local energies at each Monte Carlo cycle.
     ε²::Vector{Float64} = zeros(C) # are the sampled local energy squares at each Monte Carlo cycle (for calculation of the variance).
     E::Float64 = NaN # is the to be calculated VMC approximate ground state energy of the quantum well.
-    ΔE::Float64 = NaN # is the to be calculated standard deviation of the sampled local energies.
+    ΔE²::Float64 = NaN # is the to be calculated statistical variance of the VMC energy.
 
     c::Int64 = 0 # is the number of Monte Carlo cycles currently run.
     proposed_move::Move = Move() # is the currently proposed move.
     rejected_moves::Int64 = 0 # is the number of rejected moves because of the random Metropolis acceptance.
+    acceptance::Int64 = 0 # is the total percentage of rejected moves because of the random Metropolis acceptance.
 
 
     # FUNCTIONS:
@@ -170,7 +171,15 @@ function find_VMC_energy(well::QuantumWell, cycles::Int64; algorithm::String="br
     function calculate_energy!()
         # calculates the VMC ground state energy approximation of the quantum well, as well as its standard deviation.
         E = sum(ε)/c
-        ΔE = √((sum(ε²)/c-E^2)/c)
+        ΔE² = (sum(ε²)/c-E^2)/c
+        if (ΔE² < 0)
+            if (ΔE²^2 < 1e-20)
+                ΔE² = 0.0
+            else
+                ΔE² = NaN
+                error("The statistical variance turned out to be negative!")
+            end
+        end
     end
 
     function export_results()
@@ -206,15 +215,16 @@ function find_VMC_energy(well::QuantumWell, cycles::Int64; algorithm::String="br
         sample_local_energy!()
     end
     calculate_energy!()
+    acceptance = round(100*(1-rejected_moves/c))
 
     println(c," Monte Carlo cycles finished!")
     println()
     println(rejected_moves," moves were rejected.")
-    println("Acceptance: ",Int64(round(100*(1-rejected_moves/c))),"%")
+    println("Acceptance: ",acceptance,"%")
     println()
-    println("Optimal α: ",round(α;digits=3))
-    println("Optimal β: ",round(β;digits=3))
-    println("VMC energy: ",round(E;digits=3)," ± ",round(ΔE;digits=3))
+    println("Optimal α: ",round(α;digits=4))
+    println("Optimal β: ",round(β;digits=4))
+    println("VMC energy: ",round(E;digits=4)," ± ",round(√ΔE²;digits=4))
     println()
     plot_particles()
 end

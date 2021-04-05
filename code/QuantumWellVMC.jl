@@ -83,16 +83,19 @@ function find_VMC_energy(well::QuantumWell, cycles::Int64; algorithm::String="br
 
         function acceptance_ratio()
             # returns the Metropolis acceptance ratio for the proposed move based on the given algorithm.
+
             function transition_ratio()
                 # returns the ratio of transition probabilities for the proposed move based on the given algorithm.
                 if (algorithm == "brute_force")
                     return 1.0
                 end
             end
-            g²(r::Vector{Float64}) = exp(-α*([1,1,β][1:D]⋅(r.^2)))^2
-            f²(Δr::Float64) = 1-a/Δr
+
+            g²(r::Vector{Float64}) = exp(-2α*([1,1,β][1:D]⋅(r.^2)))
+            f²(Δr::Float64) = ((Δr > a) ? (1-a/Δr)^2 : 0.0)
             i = proposed_move.i
-            ratio = g²(proposed_move.r)/g²(R[i])
+            ratio = transition_ratio()
+            ratio *= g²(proposed_move.r)/g²(R[i])
             if (a != 0.0) && (N != 1)
                 for j in 1:N
                     if (j == i)
@@ -101,22 +104,9 @@ function find_VMC_energy(well::QuantumWell, cycles::Int64; algorithm::String="br
                     ratio *= f²(norm(proposed_move.r-R[j]))/f²(norm(R[i]-R[j]))
                 end
             end
-            ratio *= transition_ratio()
-            return min(1,ratio)
+            return min(1.0,ratio)
         end
 
-        i = proposed_move.i
-        for j in 1:N
-            if (j == i)
-                continue
-            end
-            if (norm(proposed_move.r-R[j]) ≤ a)
-                # rejects the proposed move definitely if it causes an overlap of particles.
-                rejected_moves += 1
-                proposed_move = Move()
-                return
-            end
-        end
         if (rand() > acceptance_ratio())
             # rejects the proposed move randomly based on the Metropolis acceptance ratio.
             rejected_moves += 1
@@ -168,8 +158,8 @@ function find_VMC_energy(well::QuantumWell, cycles::Int64; algorithm::String="br
         ε²[c] = ε[c]^2
     end
 
-    function calculate_energy!()
-        # calculates the VMC ground state energy approximation of the quantum well, as well as its standard deviation.
+    function calculate_VMC_energy!()
+        # calculates the VMC ground state energy approximation of the quantum well, as well as its statistical variance.
         E = sum(ε)/c
         ΔE² = (sum(ε²)/c-E^2)/c
         if (ΔE² < 0)
@@ -214,7 +204,7 @@ function find_VMC_energy(well::QuantumWell, cycles::Int64; algorithm::String="br
         move_particles!()
         sample_local_energy!()
     end
-    calculate_energy!()
+    calculate_VMC_energy!()
     acceptance = round(100*(1-rejected_moves/c))
 
     println(c," Monte Carlo cycles finished!")
@@ -226,5 +216,5 @@ function find_VMC_energy(well::QuantumWell, cycles::Int64; algorithm::String="br
     println("Optimal β: ",round(β;digits=4))
     println("VMC energy: ",round(E;digits=4)," ± ",round(√ΔE²;digits=4))
     println()
-    plot_particles()
+#    plot_particles()
 end

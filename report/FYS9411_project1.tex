@@ -161,7 +161,7 @@ Two sampling methods based on single particle moves will be considered in this t
 \begin{equation}
 \vec{r'}_i = \vec{r}_i+\widetilde{\delta\vec{r}}, \label{propRS}
 \end{equation}
-where $\widetilde{\delta\vec{r}}$ is a stochastic vector drawn uniformly from the interval $-\delta r \leftrightarrow \delta r$ in each direction of space for some fixed step size $\delta r$. The proposal distribution $P$ in this case is symmetric,
+where $\widetilde{\delta\vec{r}}$ is a stochastic vector drawn uniformly from the interval $-\delta s \leftrightarrow \delta s$ in each spatial direction for some fixed step size $\delta s$. The proposal distribution $P$ in this case is symmetric,
 \begin{equation}
 p[\vec{R}'_i|\vec{R}] = p[\vec{R}|\vec{R}'_i], \nonumber
 \end{equation}
@@ -182,13 +182,23 @@ which is nothing else than Newton's second law for a particle subject to a frict
 \end{equation}
 Using now the length unit set in section \ref{system} and introducing a suitable time unit, this equation can be made dimensionless and recast to
 \begin{equation}
-\frac{\delta\vec{r}}{\delta t} = \frac{1}{2}\vec{Q}[\vec{r}]+\widetilde{\vec{\eta}}, \label{Langevin}
+\frac{\delta\vec{r}}{\delta t} = \frac{1}{2}\vec{Q}[\vec{r}]+\widetilde{\vec{W}}, \label{Langevin}
 \end{equation}
-where $\vec{Q}$ is a dimensionless drift term and $\widetilde{\vec{\eta}}$ is a dimensionless stochastic term drawn from a normal distribution with zero mean and unit deviation. Discretising this with the Euler-Maruyama method (a modified Euler method for stochastic differential equations) gives a new algorithm for proposing moves for the random particle $i$ through
+where $\vec{Q}$ is a dimensionless drift term and $\widetilde{\vec{W}}$ is a dimensionless stochastic term. Discretising this with the Euler-Maruyama method (a modified Euler method for stochastic differential equations) a new algorithm emerges for proposing moves for the random particle $i$ through
 \begin{equation}
-\vec{r'}_i = \vec{r}_i+\frac{1}{2}\vec{Q}_i[\vec{R}]\delta t + \widetilde{\vec{\eta}}\sqrt{\delta t} \label{propLD}
+\vec{r'}_i = \vec{r}_i+\frac{1}{2}\vec{Q}_i[\vec{R}]\delta t + \widetilde{\delta\vec{r}}
 \end{equation}
-for some fixed small (dimensionless) time step $\delta t$. The proposal distribution $P$ in this case is not symmetric, but can be found by considering the corresponding Fokker-Planck equation, which is a partial differential equation describing the time evolution of the spatial configuration distribution $\Pi$ when the Langevin equation is invoked. The Fokker-Planck equation corresponding to the overdamped Langevin equation \eqref{Langevin} is also known as the Smoluchowski equation and is given by
+for some fixed small (dimensionless) time step $\delta t$ and a stochastic vector $\widetilde{\delta\vec{r}}$ drawn from a normal distribution with mean zero and deviation $\sqrt{\delta t}$ in each spatial direction. For some consistency with random step sampling $\delta s$ can be introduced as
+\begin{equation}
+\delta s = \sqrt{\delta t}
+\end{equation}
+to recast the proposal algorithm as
+\begin{equation}
+\vec{r'}_i = \vec{r}_i+\frac{1}{2}\vec{Q}_i[\vec{R}]\delta s^2 + \widetilde{\delta\vec{r}}, \label{propLD}
+\end{equation}
+in which $\widetilde{\delta\vec{r}}$ now is a stochastic vector drawn from a normal distribution with mean zero and deviation $\delta s$ in each spatial direction.
+
+The proposal distribution $P$ for the algorithm in \eqref{propLD} is not symmetric, but can be found by considering the corresponding Fokker-Planck equation, which is a partial differential equation describing the time evolution of the spatial configuration distribution $\Pi$ when the Langevin equation is invoked. The Fokker-Planck equation corresponding to the overdamped Langevin equation \eqref{Langevin} is also known as the Smoluchowski equation and is given by
 \begin{equation}
 \frac{\delta\Pi}{\delta t} = \frac{1}{2}\vec{\nabla}_i\cdot\left(\vec{\nabla}_i-\vec{Q}_i\right)\Pi. \label{Smoluchowski}
 \end{equation}
@@ -198,7 +208,7 @@ The spatial configuration distribution $\Pi$ is sure to remain constant as long 
 \end{equation}
 and the proposal distribution $P$ turns out to be nothing else than the Green function
 \begin{equation}
-G[\delta t, \vec{R}'_i|\vec{R}] = \sqrt{\frac{1}{2\pi \delta t}}^{DN} \epsilon^{-\frac{\left(\vec{r'}_i-\vec{r}_i-\frac{1}{2}\vec{Q}_i[\vec{R}]\delta t\right)^2}{2\delta t}} \label{Green}
+G[\delta t, \vec{R}'_i|\vec{R}] = \sqrt{\frac{1}{2\pi \delta s^2}}^{DN} \epsilon^{-\frac{\left(\vec{r'}_i-\vec{r}_i-\frac{1}{2}\vec{Q}_i[\vec{R}]\delta s^2\right)^2}{2\delta s^2}} \label{Green}
 \end{equation}
 of the Smoluchowski equation. In terms of Variational Monte Carlo the drift term is known as the "quantum drift" and takes the form
 \begin{equation}
@@ -206,14 +216,14 @@ of the Smoluchowski equation. In terms of Variational Monte Carlo the drift term
 \end{equation}
 In appendix \ref{quantumdrift} an analytical expression for the quantum drift is found using the derivatives of the trial wavefunction $\Psi$ which were already calculated in appendix \ref{localenergy}. Noting that
 \begin{align}
-&\left(\vec{r'}_i-\vec{r}_i-\frac{1}{2}\vec{Q}_i[\vec{R}]\delta t\right)^2-\left(\vec{r}_i-\vec{r'}_i-\frac{1}{2}\vec{Q}_i[\vec{R}'_i]\delta t\right)^2 \nonumber\\
-&= -\left(\vec{r'}_i-\vec{r}_i\right) \cdot \frac{\vec{Q}_i[\vec{R}'_i]+\vec{Q}_i[\vec{R}]}{2}\delta t-\frac{\vec{Q}_i^2[\vec{R}'_i]-\vec{Q}_i^2[\vec{R}]}{4}\delta t^2 \nonumber\\
-&= -\left(\vec{r'}_i-\vec{r}_i+\frac{\vec{Q}_i[\vec{R}'_i]-\vec{Q}_i[\vec{R}]}{2}\delta t\right)\cdot\frac{\vec{Q}_i[\vec{R}'_i]+\vec{Q}_i[\vec{R}]}{2}\delta t \nonumber
+&\left(\vec{r'}_i-\vec{r}_i-\frac{1}{2}\vec{Q}_i[\vec{R}]\delta s^2 \right)^2-\left(\vec{r}_i-\vec{r'}_i-\frac{1}{2}\vec{Q}_i[\vec{R}'_i]\delta s^2\right)^2 \nonumber\\
+&= -\left(\vec{r'}_i-\vec{r}_i\right) \cdot \frac{\vec{Q}_i[\vec{R}'_i]+\vec{Q}_i[\vec{R}]}{2}\delta s^2-\frac{\vec{Q}_i^2[\vec{R}'_i]-\vec{Q}_i^2[\vec{R}]}{4}\delta s^4 \nonumber\\
+&= -\left(\vec{r'}_i-\vec{r}_i+\frac{\vec{Q}_i[\vec{R}'_i]-\vec{Q}_i[\vec{R}]}{2}\delta s^2\right)\cdot\frac{\vec{Q}_i[\vec{R}'_i]+\vec{Q}_i[\vec{R}]}{2}\delta s^2 \nonumber
 \end{align}
 the acceptance probability in \eqref{acc_i} reduces in this case to
 \begin{align}
 &A[\vec{R}'_i|\vec{R}] = \min\Bigg\{1, \nonumber\\
-&\prod\limits_{j \neq i} \frac{g^2[\vec{r'}_i]f^2[\Delta r'_{ij}]}{g^2[\vec{r}_i]f^2[\Delta r_{ij}]}\epsilon^{-\frac{\vec{Q}_i[\vec{R}'_i]+\vec{Q}_i[\vec{R}]}{4}\cdot\left(\vec{r'}_i-\vec{r}_i+\frac{\vec{Q}_i[\vec{R}'_i]-\vec{Q}_i[\vec{R}]}{2}\delta t\right)}\Bigg\} \label{accLD}
+&\prod\limits_{j \neq i} \frac{g^2[\vec{r'}_i]f^2[\Delta r'_{ij}]}{g^2[\vec{r}_i]f^2[\Delta r_{ij}]}\epsilon^{-\frac{\vec{Q}_i[\vec{R}'_i]+\vec{Q}_i[\vec{R}]}{4}\cdot\left(\vec{r'}_i-\vec{r}_i+\frac{\vec{Q}_i[\vec{R}'_i]-\vec{Q}_i[\vec{R}]}{2}\delta s^2\right)}\Bigg\} \label{accLD}
 \end{align}
 when inserting the Green function in \eqref{Green} as the proposal distribution $P$.
 
@@ -330,7 +340,7 @@ it follows that the total analytic expression for the local energy is
 \varepsilon[\vec{R}] &= \alpha N\Big(D+(\beta-1)\Big) + \sum\limits_i^N \frac{1}{2}\left( U[\vec{r}_i] - \frac{1}{4}\vec{q}^2[\vec{r}_i] \right) \nonumber\\
 &- \sum\limits_i^N \sum\limits_{j \neq i}^N \left( \frac{a(D-3)}{2d[\Delta{r}_{ij}]} + \vec{q}[\vec{r}_i] \cdot \vec{s}[\Delta\vec{r}_{ij}] \right) - 2\sum\limits_i^N \sum\limits_{j \neq i}^N \sum\limits_{{k \neq i}\atop{k \neq j}}^N \vec{s}[\Delta\vec{r}_{ij}] \cdot \vec{s}[\Delta\vec{r}_{ik}]
 \end{align}
-as long as all $\Delta r_{ij} > a$. This last restriction is why the hard-sphere interaction energy $V$ is omitted. For configurations in which $\Delta r_{ij} \leq a$ for some $i$ and $j$, the trial wavefunction $\Psi$ is defined to be zero (because $f[\Delta r_{ij}]$ is zero), which in turn means that the Metropolis algorithm will never sample such configurations, and so the fact that the local energy is infinite for such configurations (because $V$ is infinite) is not a problem.
+as long as all $\Delta r_{ij} > a$. This last restriction is why the hard-sphere interaction energy $V$ is omitted altogether; for configurations in which $\Delta r_{ij} \leq a$ for some $i$ and $j$, the trial wavefunction $\Psi$ in \eqref{trialstate} is defined to be zero (because $f[\Delta r_{ij}]$ is zero), which in turn means that the Metropolis algorithm will never sample such configurations, and so the fact that the local energy would be infinite for such configurations (because $V$ is infinite) is not a problem.
 
 \subsection{Quantum drift $\vec{Q}$} \label{quantumdrift}
 Equation \eqref{defQuantumdrift} defines the quantum drift of the system. From the calculations of section \ref{localenergy} it follows that

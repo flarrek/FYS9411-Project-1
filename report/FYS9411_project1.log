@@ -1,4 +1,4 @@
-This is pdfTeX, Version 3.14159265-2.6-1.40.21 (MiKTeX 21.1) (preloaded format=pdflatex 2021.2.11)  5 APR 2021 07:03
+This is pdfTeX, Version 3.14159265-2.6-1.40.21 (MiKTeX 21.1) (preloaded format=pdflatex 2021.2.11)  6 APR 2021 12:09
 entering extended mode
 **./FYS9411_project1.tex
 (FYS9411_project1.tex
@@ -284,20 +284,24 @@ Underfull \hbox (badness 10000) in paragraph at lines 173--173
  []
 
 [3]
-Overfull \hbox (5.56355pt too wide) detected at line 212
+Overfull \hbox (13.77768pt too wide) detected at line 222
 []
  []
 
 
-Overfull \hbox (5.46724pt too wide) detected at line 217
+Overfull \hbox (10.12355pt too wide) detected at line 227
 []
  []
 
-(FYS9411_project1.bbl [4]) [5]
+
+Overfull \vbox (27.90982pt too high) has occurred while \output is active []
+
+
+[4] (FYS9411_project1.bbl) [5]
 
 Package amsmath Warning: Foreign command \atop;
 (amsmath)                \frac or \genfrac should be used instead
-(amsmath)                 on input line 296.
+(amsmath)                 on input line 306.
 
 [6] [7] [8] [9] (FYS9411_project1.aux)
 
@@ -307,7 +311,7 @@ LaTeX Warning: There were multiply-defined labels.
 Here is how much of TeX's memory you used:
  2920 strings out of 479618
  38530 string characters out of 2865026
- 358964 words of memory out of 3000000
+ 373140 words of memory out of 3000000
  20086 multiletter control sequences out of 15000+200000
  413439 words of font info for 65 fonts, out of 3000000 for 9000
  1141 hyphenation exceptions out of 8191
@@ -336,7 +340,7 @@ Users/jonas/AppData/Local/Programs/MiKTeX/fonts/type1/public/amsfonts/cm/cmsy7.
 pfb><C:/Users/jonas/AppData/Local/Programs/MiKTeX/fonts/type1/public/amsfonts/s
 ymbols/msbm10.pfb><C:/Users/jonas/AppData/Local/Programs/MiKTeX/fonts/type1/pub
 lic/amsfonts/symbols/msbm7.pfb>
-Output written on FYS9411_project1.pdf (9 pages, 267393 bytes).
+Output written on FYS9411_project1.pdf (9 pages, 268481 bytes).
 PDF statistics:
  116 PDF objects out of 1000 (max. 8388607)
  0 named destinations out of 1000 (max. 500000)

@@ -26,12 +26,10 @@ end
 Move() = Move(0,[])
 
 
-function find_VMC_energy(well::QuantumWell, algorithm::Algorithm, cycles::Int64;
-    δs::Float64=0.8, initial_α::Float64=0.5, initial_β::Float64=1.0)
+function find_VMC_energy(well::QuantumWell, cycles::Int64=1_000_000, algorithm::Algorithm=Algorithm("random_step");
+    δs::Float64=0.04,initial_α::Float64=0.5, initial_β::Float64=well.λ)
     # finds the VMC approximate ground state energy of the given quantum well
     # by performing the given number of Monte Carlo cycles based on the given algorithm.
-    # δs is the step size for the given sampling method, corresponding to
-    # δr for random step sampling and δt for Langevin drift sampling.
 
     # CONSTANTS:
 
@@ -114,7 +112,7 @@ function find_VMC_energy(well::QuantumWell, algorithm::Algorithm, cycles::Int64;
             δr = (2rand(D).-1)*δs
         elseif (algorithm.sampling == "Langevin_drift")
             current_Q = quantum_drift(i,R[i])
-            δr = 1/2*current_Q*δs+rand(Normal(),D)*√δs
+            δr = 1/2*current_Q*δs^2+rand(Normal(),D)*δs
         else
             error("That sampling method is not known.")
         end
@@ -135,7 +133,7 @@ function find_VMC_energy(well::QuantumWell, algorithm::Algorithm, cycles::Int64;
                     return 1.0
                 elseif (algorithm.sampling == "Langevin_drift")
                     proposed_Q = quantum_drift(proposed_move.i,proposed_move.r)
-                    return exp(-1/4*(proposed_Q+current_Q)⋅(proposed_move.r-R[proposed_move.i]+1/2*(proposed_Q-current_Q)*δs))
+                    return exp(-1/4*(proposed_Q+current_Q)⋅(proposed_move.r-R[proposed_move.i]+1/2*(proposed_Q-current_Q)*δs^2))
                 else
                     error("That sampling method is not known.")
                 end

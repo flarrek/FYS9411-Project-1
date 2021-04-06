@@ -160,7 +160,7 @@ function find_VMC_energy(well::QuantumWell, algorithm::Algorithm=Algorithm("rand
                     return 1.0
                 elseif (algorithm.sampling == "Langevin drift")
                     proposed_Q = quantum_drift(proposed_move.i,proposed_move.r)
-                    return exp(-1/2*(proposed_Q+current_Q)⋅(proposed_move.r-R[proposed_move.i]+1/2*(proposed_Q-current_Q)*δs^2))
+                    return exp(-1/2*(proposed_Q+current_Q)⋅(proposed_move.r-R[proposed_move.i]+1/4*(proposed_Q-current_Q)*δs^2))
                 else
                     error("The sampling method '",algorithm,"' is not known.")
                 end

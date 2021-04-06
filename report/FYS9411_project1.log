@@ -1,4 +1,4 @@
-This is pdfTeX, Version 3.14159265-2.6-1.40.21 (MiKTeX 21.1) (preloaded format=pdflatex 2021.2.11)  6 APR 2021 12:09
+This is pdfTeX, Version 3.14159265-2.6-1.40.21 (MiKTeX 21.1) (preloaded format=pdflatex 2021.2.11)  7 APR 2021 01:22
 entering extended mode
 **./FYS9411_project1.tex
 (FYS9411_project1.tex
@@ -284,7 +284,7 @@ Underfull \hbox (badness 10000) in paragraph at lines 173--173
  []
 
 [3]
-Overfull \hbox (13.77768pt too wide) detected at line 222
+Overfull \hbox (24.98877pt too wide) detected at line 222
 []
  []
 
@@ -311,7 +311,7 @@ LaTeX Warning: There were multiply-defined labels.
 Here is how much of TeX's memory you used:
  2920 strings out of 479618
  38530 string characters out of 2865026
- 373140 words of memory out of 3000000
+ 373146 words of memory out of 3000000
  20086 multiletter control sequences out of 15000+200000
  413439 words of font info for 65 fonts, out of 3000000 for 9000
  1141 hyphenation exceptions out of 8191
@@ -340,7 +340,7 @@ Users/jonas/AppData/Local/Programs/MiKTeX/fonts/type1/public/amsfonts/cm/cmsy7.
 pfb><C:/Users/jonas/AppData/Local/Programs/MiKTeX/fonts/type1/public/amsfonts/s
 ymbols/msbm10.pfb><C:/Users/jonas/AppData/Local/Programs/MiKTeX/fonts/type1/pub
 lic/amsfonts/symbols/msbm7.pfb>
-Output written on FYS9411_project1.pdf (9 pages, 268481 bytes).
+Output written on FYS9411_project1.pdf (9 pages, 268455 bytes).
 PDF statistics:
  116 PDF objects out of 1000 (max. 8388607)
  0 named destinations out of 1000 (max. 500000)

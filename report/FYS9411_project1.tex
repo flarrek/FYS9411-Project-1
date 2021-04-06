@@ -217,13 +217,13 @@ of the Smoluchowski equation. In terms of Variational Monte Carlo the drift term
 In appendix \ref{quantumdrift} an analytical expression for the quantum drift is found using the derivatives of the trial wavefunction $\Psi$ which were already calculated in appendix \ref{localenergy}. Noting that
 \begin{align}
 &\left(\vec{r'}_i-\vec{r}_i-\frac{1}{2}\vec{Q}_i[\vec{R}]\delta s^2 \right)^2-\left(\vec{r}_i-\vec{r'}_i-\frac{1}{2}\vec{Q}_i[\vec{R}'_i]\delta s^2\right)^2 \nonumber\\
-&= -\left(\vec{r'}_i-\vec{r}_i\right) \cdot \frac{\vec{Q}_i[\vec{R}'_i]+\vec{Q}_i[\vec{R}]}{2}\delta s^2-\frac{\vec{Q}_i^2[\vec{R}'_i]-\vec{Q}_i^2[\vec{R}]}{4}\delta s^4 \nonumber\\
-&= -\left(\vec{r'}_i-\vec{r}_i+\frac{\vec{Q}_i[\vec{R}'_i]-\vec{Q}_i[\vec{R}]}{2}\delta s^2\right)\cdot\frac{\vec{Q}_i[\vec{R}'_i]+\vec{Q}_i[\vec{R}]}{2}\delta s^2 \nonumber
+&= -\left(\vec{r'}_i-\vec{r}_i\right) \cdot \left(\vec{Q}_i[\vec{R}'_i]+\vec{Q}_i[\vec{R}]\right)\delta s^2-\frac{\vec{Q}_i^2[\vec{R}'_i]-\vec{Q}_i^2[\vec{R}]}{4}\delta s^4 \nonumber\\
+&= -\left(\vec{r'}_i-\vec{r}_i+\frac{\vec{Q}_i[\vec{R}'_i]-\vec{Q}_i[\vec{R}]}{4}\delta s^2\right)\cdot\left(\vec{Q}_i[\vec{R}'_i]+\vec{Q}_i[\vec{R}]\right)\delta s^2 \nonumber
 \end{align}
 the acceptance probability in \eqref{acc_i} reduces in this case to
 \begin{align}
 &A[\vec{R}'_i|\vec{R}] = \min\Bigg\{1, \nonumber\\
-&\prod\limits_{j \neq i} \frac{g^2[\vec{r'}_i]f^2[\Delta r'_{ij}]}{g^2[\vec{r}_i]f^2[\Delta r_{ij}]}\epsilon^{-\frac{\vec{Q}_i[\vec{R}'_i]+\vec{Q}_i[\vec{R}]}{4}\cdot\left(\vec{r'}_i-\vec{r}_i+\frac{\vec{Q}_i[\vec{R}'_i]-\vec{Q}_i[\vec{R}]}{2}\delta s^2\right)}\Bigg\} \label{accLD}
+&\prod\limits_{j \neq i} \frac{g^2[\vec{r'}_i]f^2[\Delta r'_{ij}]}{g^2[\vec{r}_i]f^2[\Delta r_{ij}]}\epsilon^{-\frac{\vec{Q}_i[\vec{R}'_i]+\vec{Q}_i[\vec{R}]}{2}\cdot\left(\vec{r'}_i-\vec{r}_i+\frac{\vec{Q}_i[\vec{R}'_i]-\vec{Q}_i[\vec{R}]}{4}\delta s^2\right)}\Bigg\} \label{accLD}
 \end{align}
 when inserting the Green function in \eqref{Green} as the proposal distribution $P$.
 

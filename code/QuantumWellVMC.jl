@@ -26,7 +26,7 @@ end
 Move() = Move(0,[])
 
 
-function find_VMC_energy(well::QuantumWell, cycles::Int64=1_000_000, algorithm::Algorithm=Algorithm("random_step");
+function find_VMC_energy(well::QuantumWell, algorithm::Algorithm=Algorithm("random_step"), cycles::Int64=1_000_000;
     δs::Float64=0.04,initial_α::Float64=0.5, initial_β::Float64=well.λ)
     # finds the VMC approximate ground state energy of the given quantum well
     # by performing the given number of Monte Carlo cycles based on the given algorithm.

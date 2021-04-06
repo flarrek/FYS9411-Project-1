@@ -1,4 +1,5 @@
 using LinearAlgebra
+using Distributions
 using Plots
 
 
@@ -11,6 +12,13 @@ end
 QuantumWell(D::Int64,N::Int64) = QuantumWell(D,N,0.0043,1.0)
 
 
+struct Algorithm # is a struct for VMC algorithms.
+    sampling::String # is the sampling method.
+    differentiation::String # is the method of differentiation.
+end
+Algorithm(sampling::String) = Algorithm(sampling,"analytical")
+
+
 mutable struct Move # is a struct for proposed Monte Carlo moves.
     i::Int64 # is the index of the particle to move.
     r::Vector{Float64} # is the new position of the particle.
@@ -18,10 +26,12 @@ end
 Move() = Move(0,[])
 
 
-function find_VMC_energy(well::QuantumWell, cycles::Int64; algorithm::String="brute_force",
-    initial_α::Float64=0.5, initial_β::Float64=1.0, δr::Float64=0.8, δt::Float64=0.4)
-    # Finds the VMC approximate ground state energy of the given quantum well
+function find_VMC_energy(well::QuantumWell, algorithm::Algorithm, cycles::Int64;
+    δs::Float64=0.8, initial_α::Float64=0.5, initial_β::Float64=1.0)
+    # finds the VMC approximate ground state energy of the given quantum well
     # by performing the given number of Monte Carlo cycles based on the given algorithm.
+    # δs is the step size for the given sampling method, corresponding to
+    # δr for random step sampling and δt for Langevin drift sampling.
 
     # CONSTANTS:
 
@@ -44,57 +54,95 @@ function find_VMC_energy(well::QuantumWell, cycles::Int64; algorithm::String="br
     α::Float64 = initial_α # is the current variational trial state parameter α.
     β::Float64 = initial_β # is the current variational trial state parameter β.
 
+    c::Int64 = 0 # is the number of Monte Carlo cycles currently run.
+
     R::Vector{Vector{Float64}} = [zeros(D) for i in 1:N] # is the current configuration of the well particles.
+
+    δr::Vector{Float64} = zeros(D) # is a randomly drawn step for the given sampling method.
+    current_Q::Vector{Float64} = zeros(D) # is the quantum drift for the randomly chosen particle at the current position (used in Langevin drift sampling).
 
     ε::Vector{Float64} = zeros(C) # are the sampled local energies at each Monte Carlo cycle.
     ε²::Vector{Float64} = zeros(C) # are the sampled local energy squares at each Monte Carlo cycle (for calculation of the variance).
     E::Float64 = NaN # is the to be calculated VMC approximate ground state energy of the quantum well.
     ΔE²::Float64 = NaN # is the to be calculated statistical variance of the VMC energy.
 
-    c::Int64 = 0 # is the number of Monte Carlo cycles currently run.
     proposed_move::Move = Move() # is the currently proposed move.
+    proposed_Q::Vector{Float64} = zeros(D) # is the quantum drift for the randomly chosen particle at the proposed position (used in Langevin drift sampling).
     rejected_moves::Int64 = 0 # is the number of rejected moves because of the random Metropolis acceptance.
     acceptance::Int64 = 0 # is the total percentage of rejected moves because of the random Metropolis acceptance.
 
 
     # FUNCTIONS:
 
+    g²(r::Vector{Float64}) = exp(-2α*([1,1,β][1:D]⋅(r.^2)))
+    f²(Δr::Float64) = ((Δr > a) ? (1-a/Δr)^2 : 0.0)
+        # are the squares of the functions g and f defined in the report, used to calculate the Metropolis acceptance ratio.
+
+    U(r::Vector{Float64})::Float64 = [1,1,λ^2][1:D]⋅(r.^2) # is the elliptical harmonic well potential energy.
+
+    q(r::Vector{Float64})::Vector{Float64} = 4α*([1,1,β][1:D].*r)
+    d(Δr::Float64)::Float64 = Δr^2*(Δr-a)
+    s(Δr::Vector{Float64})::Vector{Float64} = (a/2d(norm(Δr)))*Δr
+        # are the quantities defined in the report and used to calculate the quantum drift and the local energy.
+
     function scatter_particles!()
-        # scatters the well particles into an initial box configuration.
+        # scatters the well particles into an initial box configuration of B sites in each spatial direction.
         B::Int64 = ceil(N^(1/D))
         for i in 1:N
             R[i] = [1.1*(((i-1)%(B^d))÷(B^(d-1))-(B-1)/2)*a for d in 1:D]
         end
     end
 
+    function quantum_drift(i::Int64,r::Vector{Float64})::Vector{Float64}
+        # calculates the quantum drift for particle i at position r with the current configuration.
+        drift = q(r)
+        if (a != 0.0) && (N != 1)
+            for j in 1:N
+                if (j == i)
+                    continue
+                end
+                drift += 4s(r-R[j])
+            end
+        end
+        return drift
+    end
+
     function propose_move!()
-        # proposes a move based on the given algorithm.
-        if (algorithm == "brute_force")
-            i = rand(1:N)
-            Δr = [(2rand()-1) for d in 1:D]*δr
+        # proposes a move based on the given sampling method.
+        i = rand(1:N)
+        if (algorithm.sampling == "random_step")
+            δr = (2rand(D).-1)*δs
+        elseif (algorithm.sampling == "Langevin_drift")
+            current_Q = quantum_drift(i,R[i])
+            δr = 1/2*current_Q*δs+rand(Normal(),D)*√δs
+        else
+            error("That sampling method is not known.")
         end
         proposed_move.i = i
-        proposed_move.r = R[i]+Δr
+        proposed_move.r = R[i]+δr
     end
 
     function judge_move!()
         # judges whether the proposed move is accepted based on the characteristic particle radius
         # and the acceptance ratio, and nullifies the move if rejected.
 
-        function acceptance_ratio()
+        function acceptance_ratio()::Float64
             # returns the Metropolis acceptance ratio for the proposed move based on the given algorithm.
 
-            function transition_ratio()
-                # returns the ratio of transition probabilities for the proposed move based on the given algorithm.
-                if (algorithm == "brute_force")
+            function proposal_ratio()::Float64
+                # returns the ratio of proposal distributions for the proposed move based on the given algorithm.
+                if (algorithm.sampling == "random_step")
                     return 1.0
+                elseif (algorithm.sampling == "Langevin_drift")
+                    proposed_Q = quantum_drift(proposed_move.i,proposed_move.r)
+                    return exp(-1/4*(proposed_Q+current_Q)⋅(proposed_move.r-R[proposed_move.i]+1/2*(proposed_Q-current_Q)*δs))
+                else
+                    error("That sampling method is not known.")
                 end
             end
 
-            g²(r::Vector{Float64}) = exp(-2α*([1,1,β][1:D]⋅(r.^2)))
-            f²(Δr::Float64) = ((Δr > a) ? (1-a/Δr)^2 : 0.0)
             i = proposed_move.i
-            ratio = transition_ratio()
+            ratio = proposal_ratio()
             ratio *= g²(proposed_move.r)/g²(R[i])
             if (a != 0.0) && (N != 1)
                 for j in 1:N
@@ -133,10 +181,6 @@ function find_VMC_energy(well::QuantumWell, cycles::Int64; algorithm::String="br
             ε²[c] = ε²[c-1]
             return
         end
-        U(r::Vector{Float64}) = [1,1,λ^2][1:D]⋅(r.^2)
-        q(r::Vector{Float64}) = 4α*([1,1,β][1:D].*r)
-        d(Δr::Float64) = Δr^2*(Δr-a)
-        s(Δr::Vector{Float64}) = (a/2d(norm(Δr)))*Δr
         ε[c] = α*N*(D+(β-1))
         for i in 1:N
             ε[c] += 1/2*(U(R[i])-1/4*q(R[i])⋅q(R[i]))
@@ -163,11 +207,10 @@ function find_VMC_energy(well::QuantumWell, cycles::Int64; algorithm::String="br
         E = sum(ε)/c
         ΔE² = (sum(ε²)/c-E^2)/c
         if (ΔE² < 0)
-            if (ΔE²^2 < 1e-20)
+            if (ΔE²^2 < 1e-12)
                 ΔE² = 0.0
             else
-                ΔE² = NaN
-                error("The statistical variance turned out to be negative!")
+                error("The statistical variance turned out to be negative with value ",ΔE²,"!")
             end
         end
     end

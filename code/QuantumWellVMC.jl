@@ -15,8 +15,9 @@ QuantumWell(D::Int64,N::Int64) = QuantumWell(D,N,0.0043,1.0)
 struct Algorithm # is a struct for VMC algorithms.
     sampling::String # is the sampling method.
     differentiation::String # is the method of differentiation.
+    scattering::String # is the method of scattering the particles initially.
 end
-Algorithm(sampling::String) = Algorithm(sampling,"analytical")
+Algorithm(sampling::String) = Algorithm(sampling,"analytical","normal")
 
 
 mutable struct Move # is a struct for proposed Monte Carlo moves.
@@ -26,8 +27,8 @@ end
 Move() = Move(0,[])
 
 
-function find_VMC_energy(well::QuantumWell, algorithm::Algorithm=Algorithm("random_step"), cycles::Int64=1_000_000;
-    δs::Float64=0.04,initial_α::Float64=0.5, initial_β::Float64=well.λ)
+function find_VMC_energy(well::QuantumWell, algorithm::Algorithm=Algorithm("random step"), cycles::Int64=1_000_000;
+    δs::Float64=0.05,initial_α::Float64=0.5, initial_β::Float64=well.λ)
     # finds the VMC approximate ground state energy of the given quantum well
     # by performing the given number of Monte Carlo cycles based on the given algorithm.
 
@@ -46,7 +47,9 @@ function find_VMC_energy(well::QuantumWell, algorithm::Algorithm=Algorithm("rand
         # is a long description of the quantum well in words.
     system_parameters::String = string("D = ",D,", N = ",N,", a = ",round(a;digits=4),", λ = ",round(λ;digits=4))
         # is a string of the quantum well parameters.
-
+    algorithm_methods::String = string("Metropolis algorithm with ",algorithm.scattering," initial scattering, ",
+        algorithm.sampling," sampling and ",algorithm.differentiation," differentiation.")
+        # is a string describing the algorithm in words.
     # VARIABLES:
 
     α::Float64 = initial_α # is the current variational trial state parameter α.
@@ -84,10 +87,34 @@ function find_VMC_energy(well::QuantumWell, algorithm::Algorithm=Algorithm("rand
         # are the quantities defined in the report and used to calculate the quantum drift and the local energy.
 
     function scatter_particles!()
-        # scatters the well particles into an initial box configuration of B sites in each spatial direction.
-        B::Int64 = ceil(N^(1/D))
-        for i in 1:N
-            R[i] = [1.1*(((i-1)%(B^d))÷(B^(d-1))-(B-1)/2)*a for d in 1:D]
+        # scatters the well particles into an initial configuration based on the given algorithm.
+        if (algorithm.scattering == "normal")
+            # scatters the well particles into a normal distribution around the origin with deviation 1/√2.
+            placing::Bool = true
+            for i in 1:N
+                if (a != 0.0) && (N != 1)
+                    placing = true
+                    while placing
+                        R[i] = rand(Normal(),D)/√2
+                        placing = false
+                        for j in 1:(i-1)
+                            if (norm(R[i]-R[j]) ≤ a)
+                                placing = true
+                            end
+                        end
+                    end
+                else
+                    R[i] = rand(Normal(),D)/√2
+                end
+            end
+        elseif (algorithm.scattering == "lattice")
+            # scatters the well particles into a centered L×L×L-point square lattice with size √2 in each spatial direction.
+            L::Int64 = ceil(N^(1/D))
+            for i in 1:N
+                R[i] = [√2(((i-1)%(L^d))÷(L^(d-1))-(L-1)/2) for d in 1:D]
+            end
+        else
+            error("The initial scattering method '",algorithm.scattering,"' is not known.")
         end
     end
 
@@ -108,13 +135,13 @@ function find_VMC_energy(well::QuantumWell, algorithm::Algorithm=Algorithm("rand
     function propose_move!()
         # proposes a move based on the given sampling method.
         i = rand(1:N)
-        if (algorithm.sampling == "random_step")
+        if (algorithm.sampling == "random step")
             δr = (2rand(D).-1)*δs
-        elseif (algorithm.sampling == "Langevin_drift")
+        elseif (algorithm.sampling == "Langevin drift")
             current_Q = quantum_drift(i,R[i])
             δr = 1/2*current_Q*δs^2+rand(Normal(),D)*δs
         else
-            error("That sampling method is not known.")
+            error("The sampling method '",algorithm,"' is not known.")
         end
         proposed_move.i = i
         proposed_move.r = R[i]+δr
@@ -129,13 +156,13 @@ function find_VMC_energy(well::QuantumWell, algorithm::Algorithm=Algorithm("rand
 
             function proposal_ratio()::Float64
                 # returns the ratio of proposal distributions for the proposed move based on the given algorithm.
-                if (algorithm.sampling == "random_step")
+                if (algorithm.sampling == "random step")
                     return 1.0
-                elseif (algorithm.sampling == "Langevin_drift")
+                elseif (algorithm.sampling == "Langevin drift")
                     proposed_Q = quantum_drift(proposed_move.i,proposed_move.r)
-                    return exp(-1/4*(proposed_Q+current_Q)⋅(proposed_move.r-R[proposed_move.i]+1/2*(proposed_Q-current_Q)*δs^2))
+                    return exp(-1/2*(proposed_Q+current_Q)⋅(proposed_move.r-R[proposed_move.i]+1/2*(proposed_Q-current_Q)*δs^2))
                 else
-                    error("That sampling method is not known.")
+                    error("The sampling method '",algorithm,"' is not known.")
                 end
             end
 
@@ -202,10 +229,13 @@ function find_VMC_energy(well::QuantumWell, algorithm::Algorithm=Algorithm("rand
 
     function calculate_VMC_energy!()
         # calculates the VMC ground state energy approximation of the quantum well, as well as its statistical variance.
+        if (rejected_moves == C)
+            error("All moves were rejected for this step size!")
+        end
         E = sum(ε)/c
         ΔE² = (sum(ε²)/c-E^2)/c
         if (ΔE² < 0)
-            if (ΔE²^2 < 1e-12)
+            if (ΔE²^2 < 1e-10)
                 ΔE² = 0.0
             else
                 error("The statistical variance turned out to be negative with value ",ΔE²,"!")
@@ -234,10 +264,12 @@ function find_VMC_energy(well::QuantumWell, algorithm::Algorithm=Algorithm("rand
     println("Finding the VMC energy for ",long_system_description,".")
     println()
     println("Quantum well parameters: ",system_parameters)
+    println("Algorithm: ",algorithm_methods)
     println()
-    println("Running ",C," Monte Carlo cycles ...")
-
+    println("Scattering ",N," particles ...")
     scatter_particles!()
+#    plot_particles()
+    println("Running ",C," Monte Carlo cycles ...")
     while (c < C)
         c += 1
         propose_move!()

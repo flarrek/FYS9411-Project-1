@@ -7,7 +7,7 @@
 
 
 \title{\small FYS9411 – Computational Physics II \\
-\huge Variational Monte Carlo on a Bosonic Quantum Well}
+\huge Variational Monte Carlo on a Bosonic Quantum Trap}
 \author{\large Jonas Boym Flaten \\
 \small University of Oslo}
 \date{\today}
@@ -18,7 +18,7 @@
 [
 \maketitle
 \begin{abstract}
-Using the Julia language, the Variational Monte Carlo method was implemented for an elliptical harmonic quantum well system with and without particle interaction, and 2 variational parameters were tuned using the Gradient Descent method. A comparison between two different Monte Carlo sampling algorithms, as well as statistical refinement of the results, is presented. |||noe mer om statistisk analyse||| Importance sampling using Langevin "quantum drift" sampling is shown to be superior to brute-force "random step" sampling. Finally, the effect of particle interaction is examined and discussed. |||noe mer om resultatene||| 
+Using the Julia language, the Variational Monte Carlo method was implemented for an elliptical harmonic quantum trap system with and without particle interaction, and 2 variational parameters were tuned using the gradient descent algorithm. A comparison between two different Monte Carlo sampling methods, as well as statistical refinement of the results, is presented. |||noe mer om statistisk analyse||| Importance sampling using Langevin "quantum drift" sampling is shown to be superior to brute-force "random step" sampling. Finally, the effect of particle interaction is examined and discussed. |||noe mer om resultatene||| 
 \end{abstract}
 ]
 
@@ -29,7 +29,7 @@ As far as current human knowledge goes, Quantum Mechanics seems to be an excelle
 The difficulties with analytical analysis of quantum many-particle systems encourages consideration of statistical and numerical methods. With the 
 currently available computational power in one's own office and the advent of collaborative development of code over the internet, the field of Computational Physics has emerged as a third alternative to the traditional theoretical and experimental branches of research on physics. Especially within Quantum Mechanics, where the theoreticists face the complexity of coupled differential systems as discussed above while the experimentalists deal with the frailty (and cost) of experiments tuned to the extreme parameters of the quantum world, computational research is well-suited to the task. Through numerical simulations founded on statistical methods and analysis, large quantum mechanical systems can be explored with excellent precision.
 
-In this text, the computational method of Variational Monte Carlo on an elliptical harmonic quantum well system is considered, and its implementation in Julia and subsequent results are reported. The sections \ref{model} and \ref{theory} provide the concrete model in consideration and the principles leading up to the method. In section \ref{method} the actual implementation as well as the scientific approach to the problem is described. Finally in section \ref{results} the results are presented, discussed and compared to similar work.
+In this text, the computational method of Variational Monte Carlo on an elliptical harmonic quantum trap system is considered, and its implementation in Julia and subsequent results are reported. The sections \ref{model} and \ref{theory} provide the concrete model in consideration and the principles leading up to the method. In section \ref{method} the actual implementation as well as the scientific approach to the problem is described. Finally in section \ref{results} the results are presented, discussed and compared to similar work.
 
 |||noen referanser og aktualisering av det fysiske systemet kanskje?|||
 
@@ -37,7 +37,7 @@ In this text, the computational method of Variational Monte Carlo on an elliptic
 \section{Model} \label{model}
 
 \subsection{Quantum system} \label{system}
-The quantum system in consideration is a $D$-dimensional quantum well with an arbitrary number of identical particles $N$. In the position basis, the Hamiltonian is
+The quantum system in consideration is a $D$-dimensional quantum trap with an arbitrary number of identical particles $N$. In the position basis, the Hamiltonian is
 \begin{equation}
 H[\vec{R}] = \sum\limits_i^N \left(U[\vec{r}_i] -\frac{\hbar^2}{2m}\nabla_i^2 \right) + \sum\limits_i^N\sum\limits_{j > i}^N V[\vec{r}_i,\vec{r}_j]
 \end{equation}
@@ -49,7 +49,7 @@ V[\vec{r}_i,\vec{r}_j] &= V[\Delta{r}_{ij}] =\begin{cases} \infty & \text{for $\
 \end{align}
 In other words $U$ is an elliptical harmonic oscillator potential, and $V$ describes a hard-sphere interaction between the particles. In the equations above as well as the rest of this text, $\vec{r}_i$ and $\vec{\nabla}_i$ are the position and spatial derivative of each particle (indexed by $i$). Furthermore $\Delta\vec{r}_{ij} = \vec{r}_i-\vec{r}_j$ is the distance vector between the particles $i$ and $j$. Finally $\vec{R}$ is the configuration vector of the system as a whole (containing all the particle positions $\vec{r}_i$).
 
-The parameters of the model are the mass of the particles $m$, the characteristic radius of the particles $a$ and the well strength $\omega$, as well as the elliptic parameter $\lambda$ (which potentially makes the well elliptical in the z-direction). However the variables of the system can be made dimensionless by introducing $\sqrt{\frac{\hbar}{m\omega}}$ as length unit and $\hbar\omega$ as energy unit by splitting
+The parameters of the model are the mass of the particles $m$, the characteristic radius of the particles $a$ and the trap strength $\omega$, as well as the elliptic parameter $\lambda$ (which potentially makes the trap elliptical in the z-direction). However the variables of the system can be made dimensionless by introducing $\sqrt{\frac{\hbar}{m\omega}}$ as length unit and $\hbar\omega$ as energy unit by splitting
 \begin{align}
 &\vec{r}_i = \sqrt{\frac{\hbar}{m\omega}}\vec{r'}_i, \quad &\vec{\nabla}_i = \sqrt{\frac{m\omega}{\hbar}}\vec{\nabla'}_i, \nonumber\\
 &H = \hbar\omega H', \quad\quad &a = \sqrt{\frac{\hbar}{m\omega}}a'. \nonumber
@@ -69,7 +69,7 @@ In the rest of this text, we omit the primes and consider these dimensionless va
 
 \subsection{Trial state} \label{trialstate}
 
-The well particles are assumed to be bosons, and the variational trial state in consideration has the form in position basis
+The trap particles are assumed to be bosons, and the variational trial state in consideration has the form in position basis
 \begin{equation}
 \Psi[\vec{R}] = \prod\limits_i^N g[\vec{r}_i] \prod\limits_j^N\prod\limits_{k > j}^N f[\vec{r}_j,\vec{r}_k] \label{trialstate}
 \end{equation}

@@ -3,28 +3,28 @@ using Distributions
 using Plots
 
 
-struct QuantumWell # is a struct for elliptical quantum well systems.
-    D::Int64 # is the dimension of the quantum well.
-    N::Int64 # is the number of particles in the well.
+struct QuantumTrap # is a struct for elliptical quantum trap systems.
+    D::Int64 # is the dimension of the quantum trap.
+    N::Int64 # is the number of particles in the trap.
     a::Float64 # is the characteristic radius of the particles.
-    λ::Float64 # is the elliptic parameter of the well.
+    λ::Float64 # is the elliptic parameter of the trap.
 end
-QuantumWell(D::Int64,N::Int64) = QuantumWell(D,N,0.0043,√8)
+QuantumTrap(D::Int64,N::Int64) = QuantumTrap(D,N,0.0043,√8)
 
-function system_parameters(well::QuantumWell)
-    # returns a string of the quantum well parameters.
-    return string("D = ",well.D,", N = ",well.N,", a = ",round(well.a;digits=4),", λ = ",round(well.λ;digits=4))
-end
-
-function short_system_description(well::QuantumWell)
-    # returns a short description of the quantum well in words.
-    return string("a ",well.D,"D quantum well")
+function system_parameters(trap::QuantumTrap)
+    # returns a string of the quantum trap parameters.
+    return string("D = ",trap.D,", N = ",trap.N,", a = ",round(trap.a;digits=4),", λ = ",round(trap.λ;digits=4))
 end
 
-function long_system_description(well::QuantumWell)
-    # returns a long description of the quantum well in words.
-    return string("a",((well.D > 1) ? ((well.λ==1.0) ? " spherical " : "n elliptical ") : " "),
-        well.D,"D quantum well with ",well.N,((well.a==0.0) ? " non-" : " "),"interacting particle",((well.N>1) ? "s" : ""))
+function short_system_description(trap::QuantumTrap)
+    # returns a short description of the quantum trap in words.
+    return string("a ",trap.D,"D quantum trap")
+end
+
+function long_system_description(trap::QuantumTrap)
+    # returns a long description of the quantum trap in words.
+    return string("a",((trap.D > 1) ? ((trap.λ==1.0) ? " spherical " : "n elliptical ") : " "),
+        trap.D,"D quantum trap with ",trap.N,((trap.a==0.0) ? " non-" : " "),"interacting particle",((trap.N>1) ? "s" : ""))
 end
 
 
@@ -50,17 +50,17 @@ end
 Move() = Move(0,[])
 
 
-function find_VMC_energy(well::QuantumWell, cycles::Int64=1_000_000, algorithm::Algorithm=Algorithm("quantum drift");
-        initial_α::Float64=0.5, initial_β::Float64=well.λ, output::Bool=true)
-    # finds the VMC approximate ground state energy of the given quantum well
+function find_VMC_energy(trap::QuantumTrap, cycles::Int64=1_000_000, algorithm::Algorithm=Algorithm("quantum drift");
+        initial_α::Float64=0.5, initial_β::Float64=trap.λ, output::Bool=true)
+    # finds the VMC approximate ground state energy of the given quantum trap
     # by performing the given number of Monte Carlo cycles based on the given algorithm.
 
     # CONSTANTS:
 
-    D::Int64 = well.D # is the dimension of the quantum well.
-    N::Int64 = well.N # is the number of particles in the well.
-    a::Float64 = well.a # is the characteristic radius of the particles.
-    λ::Float64 = well.λ # is the elliptic parameter of the well.
+    D::Int64 = trap.D # is the dimension of the quantum trap.
+    N::Int64 = trap.N # is the number of particles in the trap.
+    a::Float64 = trap.a # is the characteristic radius of the particles.
+    λ::Float64 = trap.λ # is the elliptic parameter of the trap.
 
     δs::Float64 = algorithm.δs # is the step size used for proposing moves in the sampling method.
     C::Int64 = cycles # is the number of Monte Carlo cycles to be run.
@@ -73,14 +73,14 @@ function find_VMC_energy(well::QuantumWell, cycles::Int64=1_000_000, algorithm::
 
     c::Int64 = 0 # is the number of Monte Carlo cycles currently run.
 
-    R::Vector{Vector{Float64}} = [zeros(D) for i in 1:N] # is the current configuration of the well particles.
+    R::Vector{Vector{Float64}} = [zeros(D) for i in 1:N] # is the current configuration of the trap particles.
 
     δr::Vector{Float64} = zeros(D) # is a randomly drawn step for the given sampling method.
     current_Q::Vector{Float64} = zeros(D) # is the quantum drift for the randomly chosen particle at the current position (used in quantum drift sampling).
 
     ε::Vector{Float64} = zeros(C) # are the sampled local energies at each Monte Carlo cycle.
     ε²::Vector{Float64} = zeros(C) # are the sampled local energy squares at each Monte Carlo cycle (for calculation of the variance).
-    E::Float64 = 0.0 # is the to be calculated VMC approximate ground state energy of the quantum well.
+    E::Float64 = 0.0 # is the to be calculated VMC approximate ground state energy of the quantum trap.
     ΔE²::Float64 = 0.0 # is the to be calculated statistical variance of the VMC energy.
 
     proposed_move::Move = Move() # is the currently proposed move.
@@ -95,7 +95,7 @@ function find_VMC_energy(well::QuantumWell, cycles::Int64=1_000_000, algorithm::
     f²(Δr::Float64) = ((Δr > a) ? (1-a/Δr)^2 : 0.0)
         # are the squares of the functions g and f defined in the report, used to calculate the Metropolis acceptance ratio.
 
-    U(r::Vector{Float64})::Float64 = [1,1,λ^2][1:D]⋅(r.^2) # is the elliptical harmonic well potential energy.
+    U(r::Vector{Float64})::Float64 = [1,1,λ^2][1:D]⋅(r.^2) # is the elliptical harmonic trap potential energy.
 
     q(r::Vector{Float64})::Vector{Float64} = 4α*([1,1,β][1:D].*r)
     d(Δr::Float64)::Float64 = Δr^2*(Δr-a)
@@ -103,9 +103,9 @@ function find_VMC_energy(well::QuantumWell, cycles::Int64=1_000_000, algorithm::
         # are the quantities defined in the report and used to calculate the quantum drift and the local energy.
 
     function scatter_particles!()
-        # scatters the well particles into an initial configuration based on the given algorithm.
+        # scatters the trap particles into an initial configuration based on the given algorithm.
         if (algorithm.scattering == "normal")
-            # scatters the well particles into a normal distribution around the origin with deviation 1/√2.
+            # scatters the trap particles into a normal distribution around the origin with deviation 1/√2.
             placing::Bool = true
             for i in 1:N
                 if (a != 0.0) && (N != 1)
@@ -124,7 +124,7 @@ function find_VMC_energy(well::QuantumWell, cycles::Int64=1_000_000, algorithm::
                 end
             end
         elseif (algorithm.scattering == "lattice")
-            # scatters the well particles into a centered L×L×L-point square lattice with size √2 in each spatial direction.
+            # scatters the trap particles into a centered L×L×L-point square lattice with size √2 in each spatial direction.
             L::Int64 = ceil(N^(1/D))
             for i in 1:N
                 R[i] = [√2(((i-1)%(L^d))÷(L^(d-1))-(L-1)/2) for d in 1:D]
@@ -205,7 +205,7 @@ function find_VMC_energy(well::QuantumWell, cycles::Int64=1_000_000, algorithm::
     end
 
     function move_particles!()
-        # moves the well particles based on the proposed move.
+        # moves the trap particles based on the proposed move.
         if (proposed_move.i == 0)
             # does not move any particle if the proposed move was rejected.
             return
@@ -244,7 +244,7 @@ function find_VMC_energy(well::QuantumWell, cycles::Int64=1_000_000, algorithm::
     end
 
     function calculate_VMC_energy!()
-        # calculates the VMC ground state energy approximation of the quantum well, as well as its statistical variance.
+        # calculates the VMC ground state energy approximation of the quantum trap, as well as its statistical variance.
         if (rejected_moves == C)
             error("All moves were rejected for this step size!")
         end
@@ -264,11 +264,11 @@ function find_VMC_energy(well::QuantumWell, cycles::Int64=1_000_000, algorithm::
     end
 
     function plot_particles()
-        # plots the well particles in a scatter plot of the right dimension.
+        # plots the trap particles in a scatter plot of the right dimension.
         X = [r[1] for r in R]
         Y = ((D>1) ? [r[2] for r in R] : zeros(N))
         Z = ((D>2) ? [r[3] for r in R] : zeros(N))
-        particles = plot(title="Particles in "*short_system_description(well)*"<br>("*system_parameters(well)*")")
+        particles = plot(title="Particles in "*short_system_description(trap)*"<br>("*system_parameters(trap)*")")
         scatter!(particles,X,Y,Z;color="#aa4888",label=false)
         display(particles)
         return
@@ -279,9 +279,9 @@ function find_VMC_energy(well::QuantumWell, cycles::Int64=1_000_000, algorithm::
 
     if output
         println()
-        println("Finding the VMC energy for ",long_system_description(well),".")
+        println("Finding the VMC energy for ",long_system_description(trap),".")
         println()
-        println("Quantum well parameters: ",system_parameters(well))
+        println("Quantum trap parameters: ",system_parameters(trap))
         println("Algorithm: ",algorithm_methods(algorithm))
         println()
         println("Running ",C," Monte Carlo cycles ...")
@@ -316,8 +316,8 @@ function find_VMC_energy(well::QuantumWell, cycles::Int64=1_000_000, algorithm::
 end
 
 
-function compare_VMC_sampling(well::QuantumWell,resolution::Int64=100;
-        δs::Float64=0.08,initial_α::Float64=0.5,initial_β::Float64=well.λ,output::Bool=false)
+function compare_VMC_sampling(trap::QuantumTrap,resolution::Int64=100;
+        δs::Float64=0.08,initial_α::Float64=0.5,initial_β::Float64=trap.λ,output::Bool=false)
     # compares the two VMC sampling methods by plotting their results against a number of Monte Carlo cycles spanning 1000 to 1_000_000.
 
     # VARIABLES:
@@ -328,24 +328,24 @@ function compare_VMC_sampling(well::QuantumWell,resolution::Int64=100;
     E_QD::Vector{Float64} = zeros(resolution) # is the vector of VMC energies from the quantum drift sampling method.
     ΔE_QD::Vector{Float64} = zeros(resolution) # is the vector of statistical error from the quantum drift sampling method.
 
-    E::Float64 = 0.0 # is the to be calculated reference VMC energy of the quantum well.
+    E::Float64 = 0.0 # is the to be calculated reference VMC energy of the quantum trap.
 
 
     # EXECUTIONS:
 
     println()
-    println("Comparing VMC sampling methods for ",long_system_description(well)*".")
+    println("Comparing VMC sampling methods for ",long_system_description(trap)*".")
     println()
-    println("Quantum well parameters: ",system_parameters(well))
+    println("Quantum trap parameters: ",system_parameters(trap))
     println()
     println("Running ",BigInt(2sum(C))," Monte Carlo cycles ...")
     for i in 1:resolution
-        E_RS[i],ΔE_RS[i] = find_VMC_energy(well,Algorithm("random step",δs),C[i];initial_α=initial_α,initial_β=initial_β,output=output)
-        E_QD[i],ΔE_QD[i] = find_VMC_energy(well,Algorithm("quantum drift",δs),C[i];initial_α=initial_α,initial_β=initial_β,output=output)
+        E_RS[i],ΔE_RS[i] = find_VMC_energy(trap,Algorithm("random step",δs),C[i];initial_α=initial_α,initial_β=initial_β,output=output)
+        E_QD[i],ΔE_QD[i] = find_VMC_energy(trap,Algorithm("quantum drift",δs),C[i];initial_α=initial_α,initial_β=initial_β,output=output)
     end
     println("VMC SAMPLING COMPARISON FINISHED!")
     println()
-    E,_ = find_VMC_energy(well,Algorithm("quantum drift",δs),10^8;initial_α=initial_α,initial_β=initial_β,output=true)
+    E,_ = find_VMC_energy(trap,Algorithm("quantum drift",δs),10^8;initial_α=initial_α,initial_β=initial_β,output=true)
     println()
     println("Plotting results.")
     comparison1 = plot(title="Comparison of VMC sampling from "*short_system_description(well)*"<br>("*system_parameters(well)*", δs = "*string(δs)*")",

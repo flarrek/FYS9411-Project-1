@@ -11,13 +11,36 @@ struct QuantumWell # is a struct for elliptical quantum well systems.
 end
 QuantumWell(D::Int64,N::Int64) = QuantumWell(D,N,0.0043,1.0)
 
+function system_parameters(well::QuantumWell)
+    # returns a string of the quantum well parameters.
+    return string("D = ",well.D,", N = ",well.N,", a = ",round(well.a;digits=4),", λ = ",round(well.λ;digits=4))
+end
+
+function short_system_description(well::QuantumWell)
+    # returns a short description of the quantum well in words.
+    return string("a ",well.D,"D quantum well")
+end
+
+function long_system_description(well::QuantumWell)
+    # returns a long description of the quantum well in words.
+    return string("a",((well.λ==1.0) ? " spherical " : "n elliptical "),
+        well.D,"D quantum well with ",well.N,((well.a==0.0) ? " non-" : " "),"interacting particle",((well.N>1) ? "s" : ""))
+end
+
 
 struct Algorithm # is a struct for VMC algorithms.
     sampling::String # is the sampling method.
+    δs::Float64 # is the step size used for proposing moves in the sampling method.
     differentiation::String # is the method of differentiation.
     scattering::String # is the method of scattering the particles initially.
 end
-Algorithm(sampling::String) = Algorithm(sampling,"analytical","normal")
+Algorithm(sampling::String,δs::Float64=0.01) = Algorithm(sampling,δs,"analytical","normal")
+
+function algorithm_methods(algorithm::Algorithm)
+    # returns a string of the algorithm methods.
+    return string(uppercasefirst(algorithm.scattering)," scattering / ",uppercasefirst(algorithm.sampling)," sampling with δs = ",algorithm.δs," / ",
+        uppercasefirst(algorithm.differentiation)," differentiation")
+end
 
 
 mutable struct Move # is a struct for proposed Monte Carlo moves.
@@ -27,8 +50,8 @@ end
 Move() = Move(0,[])
 
 
-function find_VMC_energy(well::QuantumWell, algorithm::Algorithm=Algorithm("random step"), cycles::Int64=1_000_000;
-    δs::Float64=0.05,initial_α::Float64=0.5, initial_β::Float64=well.λ)
+function find_VMC_energy(well::QuantumWell, algorithm::Algorithm=Algorithm("Langevin drift"), cycles::Int64=1_000_000;
+        initial_α::Float64=0.5, initial_β::Float64=well.λ, output::Bool=true)
     # finds the VMC approximate ground state energy of the given quantum well
     # by performing the given number of Monte Carlo cycles based on the given algorithm.
 
@@ -38,18 +61,11 @@ function find_VMC_energy(well::QuantumWell, algorithm::Algorithm=Algorithm("rand
     N::Int64 = well.N # is the number of particles in the well.
     a::Float64 = well.a # is the characteristic radius of the particles.
     λ::Float64 = well.λ # is the elliptic parameter of the well.
+
+    δs::Float64 = algorithm.δs # is the step size used for proposing moves in the sampling method.
     C::Int64 = cycles # is the number of Monte Carlo cycles to be run.
 
-    short_system_description::String = string(D,"D quantum well")
-        # is a short description of the quantum well in words.
-    long_system_description::String = string("a",((λ==1.0) ? " spherical " : "n elliptical "),
-        D,"D quantum well with ",N,((a==0) ? " non-" : " "),"interacting particle",((N>1) ? "s" : ""))
-        # is a long description of the quantum well in words.
-    system_parameters::String = string("D = ",D,", N = ",N,", a = ",round(a;digits=4),", λ = ",round(λ;digits=4))
-        # is a string of the quantum well parameters.
-    algorithm_methods::String = string("Metropolis algorithm with ",algorithm.scattering," initial scattering, ",
-        algorithm.sampling," sampling and ",algorithm.differentiation," differentiation.")
-        # is a string describing the algorithm in words.
+
     # VARIABLES:
 
     α::Float64 = initial_α # is the current variational trial state parameter α.
@@ -64,8 +80,8 @@ function find_VMC_energy(well::QuantumWell, algorithm::Algorithm=Algorithm("rand
 
     ε::Vector{Float64} = zeros(C) # are the sampled local energies at each Monte Carlo cycle.
     ε²::Vector{Float64} = zeros(C) # are the sampled local energy squares at each Monte Carlo cycle (for calculation of the variance).
-    E::Float64 = NaN # is the to be calculated VMC approximate ground state energy of the quantum well.
-    ΔE²::Float64 = NaN # is the to be calculated statistical variance of the VMC energy.
+    E::Float64 = 0.0 # is the to be calculated VMC approximate ground state energy of the quantum well.
+    ΔE²::Float64 = 0.0 # is the to be calculated statistical variance of the VMC energy.
 
     proposed_move::Move = Move() # is the currently proposed move.
     proposed_Q::Vector{Float64} = zeros(D) # is the quantum drift for the randomly chosen particle at the proposed position (used in Langevin drift sampling).
@@ -250,26 +266,29 @@ function find_VMC_energy(well::QuantumWell, algorithm::Algorithm=Algorithm("rand
     function plot_particles()
         # plots the well particles in a scatter plot of the right dimension.
         X = [r[1] for r in R]
-        Y = (D>1) ? [r[2] for r in R] : 0*X
-        Z = (D>2) ? [r[3] for r in R] : 0*X
-        plot = scatter(X,Y,Z;title="Particles in "*short_system_description*"<br>("*system_parameters*")",label=false)
-        display(plot)
+        Y = ((D>1) ? [r[2] for r in R] : zeros(N))
+        Z = ((D>2) ? [r[3] for r in R] : zeros(N))
+        particles = plot(title="Particles in "*short_system_description(well)*"<br>("*system_parameters(well)*")")
+        scatter!(particles,X,Y,Z;color="#aa4888",label=false)
+        display(particles)
         return
     end
 
 
     # EXECUTIONS:
 
-    println()
-    println("Finding the VMC energy for ",long_system_description,".")
-    println()
-    println("Quantum well parameters: ",system_parameters)
-    println("Algorithm: ",algorithm_methods)
-    println()
-    println("Scattering ",N," particles ...")
+    if output
+        println()
+        println("Finding the VMC energy for ",long_system_description(well),".")
+        println()
+        println("Quantum well parameters: ",system_parameters(well))
+        println("Algorithm: ",algorithm_methods(algorithm))
+        println()
+        println("Running ",C," Monte Carlo cycles ...")
+    end
+
     scatter_particles!()
 #    plot_particles()
-    println("Running ",C," Monte Carlo cycles ...")
     while (c < C)
         c += 1
         propose_move!()
@@ -277,17 +296,69 @@ function find_VMC_energy(well::QuantumWell, algorithm::Algorithm=Algorithm("rand
         move_particles!()
         sample_local_energy!()
     end
+#    plot_particles()
     calculate_VMC_energy!()
     acceptance = round(100*(1-rejected_moves/c))
 
-    println(c," Monte Carlo cycles finished!")
+    if output
+        println(c," MONTE CARLO CYCLES FINISHED!")
+        println()
+        println(rejected_moves," moves were rejected.")
+        println("Acceptance: ",acceptance,"%")
+        println()
+        println("Optimal α: ",round(α;digits=4))
+        println("Optimal β: ",round(β;digits=4))
+        println("VMC energy: ",round(E;digits=4)," ± ",round(√ΔE²;digits=4))
+        println()
+    end
+
+    return E,√ΔE²
+end
+
+
+function compare_VMC_sampling(well::QuantumWell,resolution::Int64=100;
+        δs::Float64=0.01,initial_α::Float64=0.5,initial_β::Float64=well.λ,output::Bool=false)
+    # compares the two VMC sampling methods by plotting their results against a number of Monte Carlo cycles spanning 1000 to 1_000_000.
+
+    # VARIABLES:
+
+    C::Vector{Int64} = [round(10^e) for e in range(3,7;length=resolution)] # is the vector of Monte Carlo cycles to be run.
+    E_RS::Vector{Float64} = zeros(resolution) # is the vector of VMC energies from the random step sampling method.
+    ΔE_RS::Vector{Float64} = zeros(resolution) # is the vector of statistical error from the random step sampling method.
+    E_LD::Vector{Float64} = zeros(resolution) # is the vector of VMC energies from the Langevin drift sampling method.
+    ΔE_LD::Vector{Float64} = zeros(resolution) # is the vector of statistical error from the Langevin drift sampling method.
+
+    E::Float64 = 0.0 # is the to be calculated reference VMC energy of the quantum well.
+
+
+    # EXECUTIONS:
+
     println()
-    println(rejected_moves," moves were rejected.")
-    println("Acceptance: ",acceptance,"%")
+    println("Comparing VMC sampling methods for ",long_system_description(well)*".")
     println()
-    println("Optimal α: ",round(α;digits=4))
-    println("Optimal β: ",round(β;digits=4))
-    println("VMC energy: ",round(E;digits=4)," ± ",round(√ΔE²;digits=4))
+    println("Quantum well parameters: ",system_parameters(well))
     println()
-#    plot_particles()
+    println("Running ",BigInt(2sum(C))," Monte Carlo cycles ...")
+    for i in 1:resolution
+        E_RS[i],ΔE_RS[i] = find_VMC_energy(well,Algorithm("random step",δs),C[i];initial_α=initial_α,initial_β=initial_β,output=output)
+        E_LD[i],ΔE_LD[i] = find_VMC_energy(well,Algorithm("Langevin drift",δs),C[i];initial_α=initial_α,initial_β=initial_β,output=output)
+    end
+    println("VMC SAMPLING COMPARISON FINISHED!")
+    println()
+    E,_ = find_VMC_energy(well,Algorithm("Langevin drift",δs),10^8;initial_α=initial_α,initial_β=initial_β,output=true)
+    println()
+    println("Plotting results.")
+    comparison1 = plot(title="Comparison of VMC sampling from "*short_system_description(well)*"<br>("*system_parameters(well)*")",legend=:bottomright,
+        xlabel="Monte Carlo cycles",xaxis=:log,ylabel="VMC energy [ħω]")
+    plot!(comparison1,C,E_RS;ribbon=ΔE_RS,fillalpha=.5,width=2,color="#4aa888",label="random step sampling")
+    plot!(comparison1,C,E_LD;ribbon=ΔE_LD,fillalpha=.5,width=2,color="#aa4888",label="Langevin drift sampling")
+    plot!(comparison1,C,[E for i in 1:resolution];style=:dash,width=2,color="#fdce0b",label="reference VMC energy")
+    display(comparison1)
+    comparison2 = plot(title="Comparison of VMC sampling error from "*short_system_description(well)*"<br>("*system_parameters(well)*")",legend=:right,
+        xlabel="Monte Carlo cycles",xaxis=:log,ylabel="VMC energy error [ħω]")
+    plot!(comparison2,C,ΔE_RS;width=2,color="#4aa888",label="random step sampling")
+    plot!(comparison2,C,ΔE_LD;width=2,color="#aa4888",label="Langevin drift sampling")
+    display(comparison2)
+    println()
+    return
 end

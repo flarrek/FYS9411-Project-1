@@ -18,7 +18,7 @@
 [
 \maketitle
 \begin{abstract}
-Using the Julia language, the Variational Monte Carlo method was implemented for an elliptical harmonic quantum well system with and without particle interaction, and 2 variational parameters were tuned using the Gradient Descent method. A comparison between two different Monte Carlo sampling algorithms, as well as statistical refinement of the results, is presented. |||noe mer om statistisk analyse||| Importance sampling using Langevin "quantum drift" is shown to be superior to brute-force "random step" sampling. Finally, the effect of particle interaction is examined and discussed. |||noe mer om resultatene||| 
+Using the Julia language, the Variational Monte Carlo method was implemented for an elliptical harmonic quantum well system with and without particle interaction, and 2 variational parameters were tuned using the Gradient Descent method. A comparison between two different Monte Carlo sampling algorithms, as well as statistical refinement of the results, is presented. |||noe mer om statistisk analyse||| Importance sampling using Langevin "quantum drift" sampling is shown to be superior to brute-force "random step" sampling. Finally, the effect of particle interaction is examined and discussed. |||noe mer om resultatene||| 
 \end{abstract}
 ]
 
@@ -170,9 +170,9 @@ so the acceptance probability in \eqref{acc_i} reduces to
 A[\vec{R}'_i|\vec{R}] = \min\left\{1,\prod\limits_{j \neq i} \frac{g^2[\vec{r'}_i]f^2[\Delta r'_{ij}]}{g^2[\vec{r}_i]f^2[\Delta r_{ij}]}\right\}. \label{accRS}
 \end{equation}
 
-\subsection{The Langevin drift sampling method}
+\subsection{The quantum drift sampling method}
 
-The second sampling method to be considered, referred to as the "Langevin drift" method, is based on the Langevin equation – a stochastic differential equation originally introduced to consider Brownian motion. Its original full form is
+The second sampling method to be considered, referred to as the "quantum drift" method, is based on the Langevin equation – a stochastic differential equation originally introduced to consider Brownian motion. Its original full form is
 \begin{equation}
 m\frac{\delta^2\vec{r}}{\delta t^2} = -\gamma\frac{\delta\vec{r}}{\delta t}+\vec{F}[\vec{r}]+\widetilde{\vec{B}}, \label{originalLangevin}
 \end{equation}
@@ -227,7 +227,7 @@ the acceptance probability in \eqref{acc_i} reduces in this case to
 \end{align}
 when inserting the Green function in \eqref{Green} as the proposal distribution $P$.
 
-The quantum drift moves the particles with the distribution gradient, towards configurations of higher probability, and thus ensures that the "most important" configurations are sampled early on. This is why the Langevin drift sampling algorithm is also known as importance sampling.
+The quantum drift moves the particles with the distribution gradient, towards configurations of higher probability, and thus ensures that the "most important" configurations are sampled early on. This is why the quantum drift sampling method is also known as importance sampling.
 
 \subsection{The block resampling method}
 |||beskrivelse av blocking|||

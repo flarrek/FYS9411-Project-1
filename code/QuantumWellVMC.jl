@@ -34,7 +34,7 @@ struct Algorithm # is a struct for VMC algorithms.
     differentiation::String # is the method of differentiation.
     scattering::String # is the method of scattering the particles initially.
 end
-Algorithm(sampling::String,δs::Float64=0.01) = Algorithm(sampling,δs,"analytical","normal")
+Algorithm(sampling::String,δs::Float64=0.08) = Algorithm(sampling,δs,"analytical","normal")
 
 function algorithm_methods(algorithm::Algorithm)
     # returns a string of the algorithm methods.
@@ -317,7 +317,7 @@ end
 
 
 function compare_VMC_sampling(well::QuantumWell,resolution::Int64=100;
-        δs::Float64=0.01,initial_α::Float64=0.5,initial_β::Float64=well.λ,output::Bool=false)
+        δs::Float64=0.08,initial_α::Float64=0.5,initial_β::Float64=well.λ,output::Bool=false)
     # compares the two VMC sampling methods by plotting their results against a number of Monte Carlo cycles spanning 1000 to 1_000_000.
 
     # VARIABLES:

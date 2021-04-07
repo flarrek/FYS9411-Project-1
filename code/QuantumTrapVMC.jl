@@ -46,13 +46,6 @@ function algorithm_methods(algorithm::Algorithm)
 end
 
 
-mutable struct Move # is a struct for proposed Monte Carlo moves.
-    i::Int64 # is the index of the particle to move.
-    r::Vector{Float64} # is the new position of the particle.
-end
-Move() = Move(0,[])
-
-
 function find_VMC_energy(trap::QuantumTrap, cycles::Int64=1_000_000, algorithm::Algorithm=Algorithm("quantum drift");
         initial_α::Float64=0.5, initial_β::Float64=trap.λ, output::Bool=true)
     # finds the VMC approximate ground state energy of the given quantum trap
@@ -78,18 +71,20 @@ function find_VMC_energy(trap::QuantumTrap, cycles::Int64=1_000_000, algorithm::
 
     R::Vector{Vector{Float64}} = [zeros(D) for i in 1:N] # is the current configuration of the trap particles.
 
+    proposed_i::Int64 = 0 # is the particle index of the randomly chosen particle to move at each Monte Carlo cycle.
+    current_Qi::Vector{Float64} = zeros(D) # is the current quantum drift for the particle (used in quantum drift sampling).
     δr::Vector{Float64} = zeros(D) # is a randomly drawn step for the given sampling method.
-    current_Q::Vector{Float64} = zeros(D) # is the quantum drift for the randomly chosen particle at the current position (used in quantum drift sampling).
+
+    proposed_ri::Vector{Float64} = zeros(D) # is the new particle position for the currently proposed Monte Carlo move.
+    proposed_Qi::Vector{Float64} = zeros(D) # is the quantum drift of the particle at the proposed position.
+
+    rejected_moves::Int64 = 0 # is the number of rejected moves because of the random Metropolis acceptance.
+    acceptance::Int64 = 0 # is the total percentage of rejected moves because of the random Metropolis acceptance.
 
     ε::Vector{Float64} = zeros(C) # are the sampled local energies at each Monte Carlo cycle.
     ε²::Vector{Float64} = zeros(C) # are the sampled local energy squares at each Monte Carlo cycle (for calculation of the variance).
     E::Float64 = 0.0 # is the to be calculated VMC approximate ground state energy of the quantum trap.
     ΔE²::Float64 = 0.0 # is the to be calculated statistical variance of the VMC energy.
-
-    proposed_move::Move = Move() # is the currently proposed move.
-    proposed_Q::Vector{Float64} = zeros(D) # is the quantum drift for the randomly chosen particle at the proposed position (used in quantum drift sampling).
-    rejected_moves::Int64 = 0 # is the number of rejected moves because of the random Metropolis acceptance.
-    acceptance::Int64 = 0 # is the total percentage of rejected moves because of the random Metropolis acceptance.
 
 
     # FUNCTIONS:
@@ -157,13 +152,13 @@ function find_VMC_energy(trap::QuantumTrap, cycles::Int64=1_000_000, algorithm::
         if (algorithm.sampling == "random step")
             δr = (2rand(D).-1)*δs
         elseif (algorithm.sampling == "quantum drift")
-            current_Q = quantum_drift(i,R[i])
-            δr = 1/2*current_Q*δs^2+rand(Normal(),D)*δs
+            current_Qi = quantum_drift(i,R[i])
+            δr = 1/2*current_Qi*δs^2+rand(Normal(),D)*δs
         else
             error("The sampling method '",algorithm,"' is not known.")
         end
-        proposed_move.i = i
-        proposed_move.r = R[i]+δr
+        proposed_i = i
+        proposed_ri = R[i]+δr
     end
 
     function judge_move!()
@@ -178,22 +173,22 @@ function find_VMC_energy(trap::QuantumTrap, cycles::Int64=1_000_000, algorithm::
                 if (algorithm.sampling == "random step")
                     return 1.0
                 elseif (algorithm.sampling == "quantum drift")
-                    proposed_Q = quantum_drift(proposed_move.i,proposed_move.r)
-                    return exp(-1/2*(proposed_Q+current_Q)⋅(proposed_move.r-R[proposed_move.i]+1/4*(proposed_Q-current_Q)*δs^2))
+                    proposed_Qi = quantum_drift(proposed_i,proposed_ri)
+                    return exp(-1/2*(proposed_Qi+current_Qi)⋅(proposed_ri-R[proposed_i]+1/4*(proposed_Qi-current_Qi)*δs^2))
                 else
                     error("The sampling method '",algorithm,"' is not known.")
                 end
             end
 
-            i = proposed_move.i
+            i = proposed_i
             ratio = proposal_ratio()
-            ratio *= g²(proposed_move.r)/g²(R[i])
+            ratio *= g²(proposed_ri)/g²(R[i])
             if (a != 0.0) && (N != 1)
                 for j in 1:N
                     if (j == i)
                         continue
                     end
-                    ratio *= f²(norm(proposed_move.r-R[j]))/f²(norm(R[i]-R[j]))
+                    ratio *= f²(norm(proposed_ri-R[j]))/f²(norm(R[i]-R[j]))
                 end
             end
             return min(1.0,ratio)
@@ -202,24 +197,24 @@ function find_VMC_energy(trap::QuantumTrap, cycles::Int64=1_000_000, algorithm::
         if (rand() > acceptance_ratio())
             # rejects the proposed move randomly based on the Metropolis acceptance ratio.
             rejected_moves += 1
-            proposed_move = Move()
+            proposed_i = 0
         end
         # accepts the proposed move if both the above rejection tests fail.
     end
 
     function move_particles!()
         # moves the trap particles based on the proposed move.
-        if (proposed_move.i == 0)
+        if (proposed_i == 0)
             # does not move any particle if the proposed move was rejected.
             return
         end
-        i = proposed_move.i
-        R[i] = proposed_move.r
+        i = proposed_i
+        R[i] = proposed_ri
     end
 
     function sample_local_energy!()
         # samples the local energy, as well as the local energy square, at the current particle configuration.
-        if (proposed_move.i == 0) && (c > 1)
+        if (proposed_i == 0) && (c > 1)
             # copies the local energy samples from the last cycle if the proposed move was rejected.
             ε[c] = ε[c-1]
             ε²[c] = ε²[c-1]

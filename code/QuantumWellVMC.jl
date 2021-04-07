@@ -50,7 +50,7 @@ end
 Move() = Move(0,[])
 
 
-function find_VMC_energy(well::QuantumWell, algorithm::Algorithm=Algorithm("Langevin drift"), cycles::Int64=1_000_000;
+function find_VMC_energy(well::QuantumWell, algorithm::Algorithm=Algorithm("quantum drift"), cycles::Int64=1_000_000;
         initial_α::Float64=0.5, initial_β::Float64=well.λ, output::Bool=true)
     # finds the VMC approximate ground state energy of the given quantum well
     # by performing the given number of Monte Carlo cycles based on the given algorithm.
@@ -76,7 +76,7 @@ function find_VMC_energy(well::QuantumWell, algorithm::Algorithm=Algorithm("Lang
     R::Vector{Vector{Float64}} = [zeros(D) for i in 1:N] # is the current configuration of the well particles.
 
     δr::Vector{Float64} = zeros(D) # is a randomly drawn step for the given sampling method.
-    current_Q::Vector{Float64} = zeros(D) # is the quantum drift for the randomly chosen particle at the current position (used in Langevin drift sampling).
+    current_Q::Vector{Float64} = zeros(D) # is the quantum drift for the randomly chosen particle at the current position (used in quantum drift sampling).
 
     ε::Vector{Float64} = zeros(C) # are the sampled local energies at each Monte Carlo cycle.
     ε²::Vector{Float64} = zeros(C) # are the sampled local energy squares at each Monte Carlo cycle (for calculation of the variance).
@@ -84,7 +84,7 @@ function find_VMC_energy(well::QuantumWell, algorithm::Algorithm=Algorithm("Lang
     ΔE²::Float64 = 0.0 # is the to be calculated statistical variance of the VMC energy.
 
     proposed_move::Move = Move() # is the currently proposed move.
-    proposed_Q::Vector{Float64} = zeros(D) # is the quantum drift for the randomly chosen particle at the proposed position (used in Langevin drift sampling).
+    proposed_Q::Vector{Float64} = zeros(D) # is the quantum drift for the randomly chosen particle at the proposed position (used in quantum drift sampling).
     rejected_moves::Int64 = 0 # is the number of rejected moves because of the random Metropolis acceptance.
     acceptance::Int64 = 0 # is the total percentage of rejected moves because of the random Metropolis acceptance.
 
@@ -153,7 +153,7 @@ function find_VMC_energy(well::QuantumWell, algorithm::Algorithm=Algorithm("Lang
         i = rand(1:N)
         if (algorithm.sampling == "random step")
             δr = (2rand(D).-1)*δs
-        elseif (algorithm.sampling == "Langevin drift")
+        elseif (algorithm.sampling == "quantum drift")
             current_Q = quantum_drift(i,R[i])
             δr = 1/2*current_Q*δs^2+rand(Normal(),D)*δs
         else
@@ -174,7 +174,7 @@ function find_VMC_energy(well::QuantumWell, algorithm::Algorithm=Algorithm("Lang
                 # returns the ratio of proposal distributions for the proposed move based on the given algorithm.
                 if (algorithm.sampling == "random step")
                     return 1.0
-                elseif (algorithm.sampling == "Langevin drift")
+                elseif (algorithm.sampling == "quantum drift")
                     proposed_Q = quantum_drift(proposed_move.i,proposed_move.r)
                     return exp(-1/2*(proposed_Q+current_Q)⋅(proposed_move.r-R[proposed_move.i]+1/4*(proposed_Q-current_Q)*δs^2))
                 else
@@ -325,8 +325,8 @@ function compare_VMC_sampling(well::QuantumWell,resolution::Int64=100;
     C::Vector{Int64} = [round(10^e) for e in range(3,7;length=resolution)] # is the vector of Monte Carlo cycles to be run.
     E_RS::Vector{Float64} = zeros(resolution) # is the vector of VMC energies from the random step sampling method.
     ΔE_RS::Vector{Float64} = zeros(resolution) # is the vector of statistical error from the random step sampling method.
-    E_LD::Vector{Float64} = zeros(resolution) # is the vector of VMC energies from the Langevin drift sampling method.
-    ΔE_LD::Vector{Float64} = zeros(resolution) # is the vector of statistical error from the Langevin drift sampling method.
+    E_QD::Vector{Float64} = zeros(resolution) # is the vector of VMC energies from the quantum drift sampling method.
+    ΔE_QD::Vector{Float64} = zeros(resolution) # is the vector of statistical error from the quantum drift sampling method.
 
     E::Float64 = 0.0 # is the to be calculated reference VMC energy of the quantum well.
 
@@ -341,23 +341,23 @@ function compare_VMC_sampling(well::QuantumWell,resolution::Int64=100;
     println("Running ",BigInt(2sum(C))," Monte Carlo cycles ...")
     for i in 1:resolution
         E_RS[i],ΔE_RS[i] = find_VMC_energy(well,Algorithm("random step",δs),C[i];initial_α=initial_α,initial_β=initial_β,output=output)
-        E_LD[i],ΔE_LD[i] = find_VMC_energy(well,Algorithm("Langevin drift",δs),C[i];initial_α=initial_α,initial_β=initial_β,output=output)
+        E_QD[i],ΔE_QD[i] = find_VMC_energy(well,Algorithm("quantum drift",δs),C[i];initial_α=initial_α,initial_β=initial_β,output=output)
     end
     println("VMC SAMPLING COMPARISON FINISHED!")
     println()
-    E,_ = find_VMC_energy(well,Algorithm("Langevin drift",δs),10^8;initial_α=initial_α,initial_β=initial_β,output=true)
+    E,_ = find_VMC_energy(well,Algorithm("quantum drift",δs),10^8;initial_α=initial_α,initial_β=initial_β,output=true)
     println()
     println("Plotting results.")
-    comparison1 = plot(title="Comparison of VMC sampling from "*short_system_description(well)*"<br>("*system_parameters(well)*")",legend=:bottomright,
-        xlabel="Monte Carlo cycles",xaxis=:log,ylabel="VMC energy [ħω]")
+    comparison1 = plot(title="Comparison of VMC sampling from "*short_system_description(well)*"<br>("*system_parameters(well)*", δs = "*string(δs)*")",
+        legend=:bottomright,xlabel="Monte Carlo cycles",xaxis=:log,ylabel="VMC energy [ħω]")
     plot!(comparison1,C,E_RS;ribbon=ΔE_RS,fillalpha=.5,width=2,color="#4aa888",label="random step sampling")
-    plot!(comparison1,C,E_LD;ribbon=ΔE_LD,fillalpha=.5,width=2,color="#aa4888",label="Langevin drift sampling")
+    plot!(comparison1,C,E_QD;ribbon=ΔE_QD,fillalpha=.5,width=2,color="#aa4888",label="quantum drift sampling")
     plot!(comparison1,C,[E for i in 1:resolution];style=:dash,width=2,color="#fdce0b",label="reference VMC energy")
     display(comparison1)
-    comparison2 = plot(title="Comparison of VMC sampling error from "*short_system_description(well)*"<br>("*system_parameters(well)*")",legend=:right,
-        xlabel="Monte Carlo cycles",xaxis=:log,ylabel="VMC energy error [ħω]")
+    comparison2 = plot(title="Comparison of VMC sampling error from "*short_system_description(well)*"<br>("*system_parameters(well)*", δs = "*string(δs)*")",
+        legend=:right,xlabel="Monte Carlo cycles",xaxis=:log,ylabel="VMC energy error [ħω]")
     plot!(comparison2,C,ΔE_RS;width=2,color="#4aa888",label="random step sampling")
-    plot!(comparison2,C,ΔE_LD;width=2,color="#aa4888",label="Langevin drift sampling")
+    plot!(comparison2,C,ΔE_QD;width=2,color="#aa4888",label="quantum drift sampling")
     display(comparison2)
     println()
     return

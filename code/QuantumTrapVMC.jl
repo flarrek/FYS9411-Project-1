@@ -13,7 +13,8 @@ QuantumTrap(D::Int64,N::Int64) = QuantumTrap(D,N,0.0043,√8)
 
 function system_parameters(trap::QuantumTrap)
     # returns a string of the quantum trap parameters.
-    return string("D = ",trap.D,", N = ",trap.N,", a = ",round(trap.a;digits=4),", λ = ",round(trap.λ;digits=4))
+    return string("D = ",trap.D,", N = ",trap.N,", a = ",round(trap.a;digits=4),
+        ((trap.D > 2) ? string(", λ = ",round(trap.λ;digits=4)) : ""))
 end
 
 function short_system_description(trap::QuantumTrap)
@@ -23,7 +24,7 @@ end
 
 function long_system_description(trap::QuantumTrap)
     # returns a long description of the quantum trap in words.
-    return string("a",((trap.D > 1) ? ((trap.λ==1.0) ? " spherical " : "n elliptical ") : " "),
+    return string("a",((trap.D > 2) ? ((trap.λ==1.0) ? " spherical " : "n elliptical ") : " "),
         trap.D,"D quantum trap with ",trap.N,((trap.a==0.0) ? " non-" : " "),"interacting particle",((trap.N>1) ? "s" : ""))
 end
 

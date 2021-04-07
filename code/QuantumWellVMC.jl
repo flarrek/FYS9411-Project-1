@@ -9,7 +9,7 @@ struct QuantumWell # is a struct for elliptical quantum well systems.
     a::Float64 # is the characteristic radius of the particles.
     λ::Float64 # is the elliptic parameter of the well.
 end
-QuantumWell(D::Int64,N::Int64) = QuantumWell(D,N,0.0043,1.0)
+QuantumWell(D::Int64,N::Int64) = QuantumWell(D,N,0.0043,√8)
 
 function system_parameters(well::QuantumWell)
     # returns a string of the quantum well parameters.

@@ -291,9 +291,9 @@ and because the derivatives of $g$ are
 these are quite simply given by
 \begin{align}
 &\vec{\nabla}_i G = -2\alpha\Big(\vec{r}_i+(\beta-1)\vec{z}_i\Big)G, \label{grad_G}\\
-&\vec{\nabla}_i^2G = 2\alpha\left(2\alpha\Big(\vec{r}_i+(\beta-1)\vec{z}_i\Big)^2-\Big(D+(\beta-1)\Big)\right)G. \label{Lap_G}
+&\vec{\nabla}_i^2G = 2\alpha\left(2\alpha\Big(\vec{r}_i+(\beta-1)\vec{z}_i\Big)^2-\Big(D+(\beta-1)\delta_{D,3}\Big)\right)G \label{Lap_G}
 \end{align}
-To find the derivatives of $F$, rewrite the product to the exponential form 
+where $\delta_{D,3}$ is the Kronecker delta. To find the derivatives of $F$, rewrite the product to the exponential form 
 \begin{equation}
 F[\vec{R}] = \epsilon^{\sum\limits_{j}^N\sum\limits_{k > j}^N \ln f[\Delta{r}_{jk}]},
 \end{equation}
@@ -322,10 +322,10 @@ it follows that
 
 Then in total equation \eqref{Lap_Psi_1} takes the form
 \begin{align}
-\vec{\nabla}_i^2\Psi &= 2\alpha\left(2\alpha\Big(\vec{r}_i+(\beta-1)\vec{z}_i\Big)^2-\Big(D+(\beta-1)\Big)\right) \Psi \nonumber\\
+\vec{\nabla}_i^2\Psi &= 2\alpha\left(2\alpha\Big(\vec{r}_i+(\beta-1)\vec{z}_i\Big)^2-\Big(D+(\beta-1)\delta_{D,3}\Big)\right) \Psi \nonumber\\
 &- 4\alpha\Big(\vec{r}_i+(\beta-1)\vec{z}_i\Big) \cdot \sum\limits_{j \neq i}^N \left(\frac{a\Delta\vec{r}_{ij}}{\Delta{r}_{ij}^2(\Delta{r}_{ij}-a)}\right) \Psi \nonumber\\
 &+ \sum\limits_{j \neq i}^N \left(\frac{a(D-3)}{\Delta{r}_{ij}^2(\Delta{r}_{ij}-a)} + \sum\limits_{{k \neq i}\atop{k \neq j}}^N \frac{a^2 \Delta\vec{r}_{ij} \cdot \Delta\vec{r}_{ik}}{\Delta{r}_{ij}^2(\Delta{r}_{ij}-a) \Delta{r}_{ik}^2(\Delta{r}_{ik}-a)}\right) \Psi \nonumber\\
-\Longrightarrow \frac{\vec{\nabla}_i^2\Psi}{\Psi} &= 2\alpha\left(2\alpha\Big(\vec{r}_i+(\beta-1)\vec{z}_i\Big)^2-\Big(D+(\beta-1)\Big)\right) \nonumber\\
+\Longrightarrow \frac{\vec{\nabla}_i^2\Psi}{\Psi} &= 2\alpha\left(2\alpha\Big(\vec{r}_i+(\beta-1)\vec{z}_i\Big)^2-\Big(D+(\beta-1)\delta_{D,3}\Big)\right) \nonumber\\
 &+ \sum\limits_{j \neq i}^N \frac{a(D-3) - 4\alpha\Big(\vec{r}_i+(\beta-1)\vec{z}_i\Big) \cdot a\Delta\vec{r}_{ij}}{\Delta{r}_{ij}^2(\Delta{r}_{ij}-a)} \nonumber\\
 &+ \sum\limits_{j \neq i}^N \sum\limits_{{k \neq i}\atop{k \neq j}}^N \frac{a^2 \Delta\vec{r}_{ij} \cdot \Delta\vec{r}_{ik}}{\Delta{r}_{ij}^2(\Delta{r}_{ij}-a) \Delta{r}_{ik}^2(\Delta{r}_{ik}-a)}
 \end{align}
@@ -337,7 +337,7 @@ d[\Delta{r}_{ij}] &= \Delta{r}_{ij}^2(\Delta{r}_{ij}-a), \label{d}\\
 \end{align}
 it follows that the total analytic expression for the local energy is
 \begin{align}
-\varepsilon[\vec{R}] &= \alpha N\Big(D+(\beta-1)\Big) + \sum\limits_i^N \frac{1}{2}\left( U[\vec{r}_i] - \frac{1}{4}\vec{q}^2[\vec{r}_i] \right) \nonumber\\
+\varepsilon[\vec{R}] &= \alpha N\Big(D+(\beta-1)\delta_{D,3}\Big) + \sum\limits_i^N \frac{1}{2}\left( U[\vec{r}_i] - \frac{1}{4}\vec{q}^2[\vec{r}_i] \right) \nonumber\\
 &- \sum\limits_i^N \sum\limits_{j \neq i}^N \left( \frac{a(D-3)}{2d[\Delta{r}_{ij}]} + \vec{q}[\vec{r}_i] \cdot \vec{s}[\Delta\vec{r}_{ij}] \right) - 2\sum\limits_i^N \sum\limits_{j \neq i}^N \sum\limits_{{k \neq i}\atop{k \neq j}}^N \vec{s}[\Delta\vec{r}_{ij}] \cdot \vec{s}[\Delta\vec{r}_{ik}]
 \end{align}
 as long as all $\Delta r_{ij} > a$. This last restriction is why the hard-sphere interaction energy $V$ is omitted altogether; for configurations in which $\Delta r_{ij} \leq a$ for some $i$ and $j$, the trial wavefunction $\Psi$ in \eqref{trialstate} is defined to be zero (because $f[\Delta r_{ij}]$ is zero), which in turn means that the Metropolis algorithm will never sample such configurations, and so the fact that the local energy would be infinite for such configurations (because $V$ is infinite) is not a problem.

@@ -13,8 +13,9 @@ QuantumTrap(D::Int64,N::Int64) = QuantumTrap(D,N,0.0043,√8)
 
 function system_parameters(trap::QuantumTrap)
     # returns a string of the quantum trap parameters.
-    return string("D = ",trap.D,", N = ",trap.N,", a = ",round(trap.a;digits=4),
-        ((trap.D > 2) ? string(", λ = ",round(trap.λ;digits=4)) : ""))
+    return string("D = ",trap.D,", N = ",trap.N,
+        ((trap.N > 1) ? string(", a = ",round(trap.a;digits=4)) : ""),
+        ((trap.D == 3) ? string(", λ = ",round(trap.λ;digits=4)) : ""))
 end
 
 function short_system_description(trap::QuantumTrap)
@@ -24,8 +25,9 @@ end
 
 function long_system_description(trap::QuantumTrap)
     # returns a long description of the quantum trap in words.
-    return string("a",((trap.D > 2) ? ((trap.λ==1.0) ? " spherical " : "n elliptical ") : " "),
-        trap.D,"D quantum trap with ",trap.N,((trap.a==0.0) ? " non-" : " "),"interacting particle",((trap.N>1) ? "s" : ""))
+    return string("a",((trap.D == 3) ? ((trap.λ==1.0) ? " spherical " : "n elliptical ") : " "),
+        trap.D,"D quantum trap with ",trap.N,
+        ((trap.N > 1) ? ((trap.a==0.0) ? " non-interacting particles" : " interacting particles") : " particle"))
 end
 
 
@@ -223,7 +225,7 @@ function find_VMC_energy(trap::QuantumTrap, cycles::Int64=1_000_000, algorithm::
             ε²[c] = ε²[c-1]
             return
         end
-        ε[c] = α*N*(D+(β-1))
+        ε[c] = α*N*(D+(β-1)*(D==3))
         for i in 1:N
             ε[c] += 1/2*(U(R[i])-1/4*q(R[i])⋅q(R[i]))
             if (a != 0.0) && (N != 1)
@@ -308,7 +310,9 @@ function find_VMC_energy(trap::QuantumTrap, cycles::Int64=1_000_000, algorithm::
         println("Acceptance: ",acceptance,"%")
         println()
         println("Optimal α: ",round(α;digits=4))
-        println("Optimal β: ",round(β;digits=4))
+        if (D == 3)
+            println("Optimal β: ",round(β;digits=4))
+        end
         println("VMC energy: ",round(E;digits=4)," ± ",round(√ΔE²;digits=4))
         println()
     end

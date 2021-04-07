@@ -70,16 +70,21 @@ function find_VMC_energy(trap::QuantumTrap, cycles::Int64=1_000_000, algorithm::
     c::Int64 = 0 # is the number of Monte Carlo cycles currently run.
 
     R::Vector{Vector{Float64}} = [zeros(D) for i in 1:N] # is the current configuration of the trap particles.
+    ΔR::Matrix{Float64} = zeros(N,N) # is a matrix which stores all current and proposed inter-particle distances.
+    Δr = Symmetric(ΔR,:L) # are the current inter-particle distances, stored in the lower triangle of ΔR but accessed symmetrically.
 
     proposed_i::Int64 = 0 # is the particle index of the randomly chosen particle to move at each Monte Carlo cycle.
     current_Qi::Vector{Float64} = zeros(D) # is the current quantum drift for the particle (used in quantum drift sampling).
-    δr::Vector{Float64} = zeros(D) # is a randomly drawn step for the given sampling method.
+    δr::Vector{Float64} = zeros(D) # is a randomly drawn position step from the given sampling method.
 
-    proposed_ri::Vector{Float64} = zeros(D) # is the new particle position for the currently proposed Monte Carlo move.
-    proposed_Qi::Vector{Float64} = zeros(D) # is the quantum drift of the particle at the proposed position.
+    proposed_ri::Vector{Float64} = zeros(D) # is the proposed new position for the randomly chosen particle to move.
+    proposed_Δri = view(ΔR,1,:) # are the proposed new inter-particle distances by making the move, stored in the first row of ΔR.
+    proposed_Qi::Vector{Float64} = zeros(D) # is the quantum drift at the proposed position for the randomly chosen particle.
 
     rejected_moves::Int64 = 0 # is the number of rejected moves because of the random Metropolis acceptance.
     acceptance::Int64 = 0 # is the total percentage of rejected moves because of the random Metropolis acceptance.
+
+
 
     ε::Vector{Float64} = zeros(C) # are the sampled local energies at each Monte Carlo cycle.
     ε²::Vector{Float64} = zeros(C) # are the sampled local energy squares at each Monte Carlo cycle (for calculation of the variance).
@@ -105,27 +110,31 @@ function find_VMC_energy(trap::QuantumTrap, cycles::Int64=1_000_000, algorithm::
         if (algorithm.scattering == "normal")
             # scatters the trap particles into a normal distribution around the origin with deviation 1/√2.
             placing::Bool = true
-            for i in 1:N
-                if (a != 0.0) && (N != 1)
-                    placing = true
-                    while placing
-                        R[i] = rand(Normal(),D)/√2
-                        placing = false
+            @inbounds for i in 1:N
+                placing = true
+                while placing
+                    R[i] = rand(Normal(),D)/√2
+                    placing = false
+                    if (a != 0.0) && (N != 1)
                         for j in 1:(i-1)
-                            if (norm(R[i]-R[j]) ≤ a)
+                            ΔR[i,j] = norm(R[i]-R[j])
+                            if (Δr[i,j] ≤ a)
                                 placing = true
                             end
                         end
                     end
-                else
-                    R[i] = rand(Normal(),D)/√2
                 end
             end
         elseif (algorithm.scattering == "lattice")
             # scatters the trap particles into a centered L×L×L-point square lattice with size √2 in each spatial direction.
             L::Int64 = ceil(N^(1/D))
-            for i in 1:N
+            @inbounds for i in 1:N
                 R[i] = [√2(((i-1)%(L^d))÷(L^(d-1))-(L-1)/2) for d in 1:D]
+                if (a != 0.0) && (N != 1)
+                    for j in 1:(i-1)
+                        ΔR[i,j] = norm(R[i]-R[j])
+                    end
+                end
             end
         else
             error("The initial scattering method '",algorithm.scattering,"' is not known.")
@@ -136,7 +145,7 @@ function find_VMC_energy(trap::QuantumTrap, cycles::Int64=1_000_000, algorithm::
         # calculates the quantum drift for particle i at position r with the current configuration.
         drift = q(r)
         if (a != 0.0) && (N != 1)
-            for j in 1:N
+            @inbounds for j in 1:N
                 if (j == i)
                     continue
                 end
@@ -152,13 +161,13 @@ function find_VMC_energy(trap::QuantumTrap, cycles::Int64=1_000_000, algorithm::
         if (algorithm.sampling == "random step")
             δr = (2rand(D).-1)*δs
         elseif (algorithm.sampling == "quantum drift")
-            current_Qi = quantum_drift(i,R[i])
+            @inbounds current_Qi = quantum_drift(i,R[i])
             δr = 1/2*current_Qi*δs^2+rand(Normal(),D)*δs
         else
             error("The sampling method '",algorithm,"' is not known.")
         end
         proposed_i = i
-        proposed_ri = R[i]+δr
+        @inbounds proposed_ri = R[i]+δr
     end
 
     function judge_move!()
@@ -174,7 +183,7 @@ function find_VMC_energy(trap::QuantumTrap, cycles::Int64=1_000_000, algorithm::
                     return 1.0
                 elseif (algorithm.sampling == "quantum drift")
                     proposed_Qi = quantum_drift(proposed_i,proposed_ri)
-                    return exp(-1/2*(proposed_Qi+current_Qi)⋅(proposed_ri-R[proposed_i]+1/4*(proposed_Qi-current_Qi)*δs^2))
+                    return exp(-1/2*(proposed_Qi+current_Qi)⋅(δr+1/4*(proposed_Qi-current_Qi)*δs^2))
                 else
                     error("The sampling method '",algorithm,"' is not known.")
                 end
@@ -182,13 +191,14 @@ function find_VMC_energy(trap::QuantumTrap, cycles::Int64=1_000_000, algorithm::
 
             i = proposed_i
             ratio = proposal_ratio()
-            ratio *= g²(proposed_ri)/g²(R[i])
+            @inbounds ratio *= g²(proposed_ri)/g²(R[i])
             if (a != 0.0) && (N != 1)
-                for j in 1:N
+                @inbounds for j in 1:N
                     if (j == i)
                         continue
                     end
-                    ratio *= f²(norm(proposed_ri-R[j]))/f²(norm(R[i]-R[j]))
+                    proposed_Δri[j] = norm(proposed_ri-R[j])
+                    ratio *= f²(proposed_Δri[j])/f²(Δr[i,j])
                 end
             end
             return min(1.0,ratio)
@@ -209,26 +219,33 @@ function find_VMC_energy(trap::QuantumTrap, cycles::Int64=1_000_000, algorithm::
             return
         end
         i = proposed_i
-        R[i] = proposed_ri
+        @inbounds R[i] = proposed_ri
     end
 
     function sample_local_energy!()
-        # samples the local energy, as well as the local energy square, at the current particle configuration.
-        if (proposed_i == 0) && (c > 1)
+        # updates the inter-particle distances Δr related to the accepted move
+        # and samples the local energy, as well as the local energy square, at the new particle configuration.
+        @inbounds if (proposed_i == 0) && (c > 1)
             # copies the local energy samples from the last cycle if the proposed move was rejected.
             ε[c] = ε[c-1]
             ε²[c] = ε²[c-1]
             return
         end
-        ε[c] = α*N*(D+(β-1)*(D==3))
-        for i in 1:N
+        @inbounds ε[c] = α*N*(D+(β-1)*(D==3))
+        @inbounds for i in 1:N
             ε[c] += 1/2*(U(R[i])-1/4*q(R[i])⋅q(R[i]))
             if (a != 0.0) && (N != 1)
                 for j in 1:N
                     if (j == i)
                         continue
+                    elseif (i == proposed_i) # updates the inter-particle distances Δr related to the accepted move.
+                        if (j < i)
+                            ΔR[i,j] = proposed_Δri[j]
+                        else
+                            ΔR[j,i] = proposed_Δri[j]
+                        end
                     end
-                    ε[c] -= (a*(D-3)/2d(norm(R[i]-R[j]))+q(R[i])⋅s(R[i]-R[j]))
+                    ε[c] -= (a*(D-3)/2d(Δr[i,j])+q(R[i])⋅s(R[i]-R[j]))
                     for k in 1:N
                         if (k == i) || (k == j)
                             continue
@@ -238,14 +255,11 @@ function find_VMC_energy(trap::QuantumTrap, cycles::Int64=1_000_000, algorithm::
                 end
             end
         end
-        ε²[c] = ε[c]^2
+        @inbounds ε²[c] = ε[c]^2
     end
 
     function calculate_VMC_energy!()
         # calculates the VMC ground state energy approximation of the quantum trap, as well as its statistical variance.
-        if (rejected_moves == C)
-            error("All moves were rejected for this step size!")
-        end
         E = sum(ε)/c
         ΔE² = (sum(ε²)/c-E^2)/c
         if (ΔE² < 0)
@@ -263,9 +277,9 @@ function find_VMC_energy(trap::QuantumTrap, cycles::Int64=1_000_000, algorithm::
 
     function plot_particles()
         # plots the trap particles in a scatter plot of the right dimension.
-        X = [r[1] for r in R]
-        Y = ((D>1) ? [r[2] for r in R] : zeros(N))
-        Z = ((D>2) ? [r[3] for r in R] : zeros(N))
+        @inbounds X::Vector{Float64} = [r[1] for r in R]
+        @inbounds Y::Vector{Float64} = ((D>1) ? [r[2] for r in R] : zeros(N))
+        @inbounds Z::Vector{Float64} = ((D>2) ? [r[3] for r in R] : zeros(N))
         particles = plot(title="Particles in "*short_system_description(trap)*"<br>("*system_parameters(trap)*")")
         scatter!(particles,X,Y,Z;color="#aa4888",label=false)
         display(particles)
@@ -339,7 +353,7 @@ function compare_VMC_sampling(trap::QuantumTrap,resolution::Int64=100;
     println("Quantum trap parameters: ",system_parameters(trap))
     println()
     println("Running ",BigInt(2sum(C))," Monte Carlo cycles ...")
-    for i in 1:resolution
+    @inbounds for i in 1:resolution
         E_RS[i],ΔE_RS[i] = find_VMC_energy(trap,Algorithm("random step",δs),C[i];initial_α=initial_α,initial_β=initial_β,output=output)
         E_QD[i],ΔE_QD[i] = find_VMC_energy(trap,Algorithm("quantum drift",δs),C[i];initial_α=initial_α,initial_β=initial_β,output=output)
     end
@@ -347,6 +361,7 @@ function compare_VMC_sampling(trap::QuantumTrap,resolution::Int64=100;
     println()
     E,_ = find_VMC_energy(trap,Algorithm("quantum drift",δs),10^8;initial_α=initial_α,initial_β=initial_β,output=true)
     println()
+
     println("Plotting results.")
     comparison1 = plot(title="Comparison of VMC sampling from "*short_system_description(well)*"<br>("*system_parameters(well)*", δs = "*string(δs)*")",
         legend=:bottomright,xlabel="Monte Carlo cycles",xaxis=:log,ylabel="VMC energy [ħω]")

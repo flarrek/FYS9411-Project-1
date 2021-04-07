@@ -23,7 +23,7 @@ end
 
 function long_system_description(well::QuantumWell)
     # returns a long description of the quantum well in words.
-    return string("a",((well.λ==1.0) ? " spherical " : "n elliptical "),
+    return string("a",((well.D > 1) ? ((well.λ==1.0) ? " spherical " : "n elliptical ") : " "),
         well.D,"D quantum well with ",well.N,((well.a==0.0) ? " non-" : " "),"interacting particle",((well.N>1) ? "s" : ""))
 end
 
@@ -50,7 +50,7 @@ end
 Move() = Move(0,[])
 
 
-function find_VMC_energy(well::QuantumWell, algorithm::Algorithm=Algorithm("quantum drift"), cycles::Int64=1_000_000;
+function find_VMC_energy(well::QuantumWell, cycles::Int64=1_000_000, algorithm::Algorithm=Algorithm("quantum drift");
         initial_α::Float64=0.5, initial_β::Float64=well.λ, output::Bool=true)
     # finds the VMC approximate ground state energy of the given quantum well
     # by performing the given number of Monte Carlo cycles based on the given algorithm.

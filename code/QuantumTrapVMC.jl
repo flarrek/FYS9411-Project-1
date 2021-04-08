@@ -98,13 +98,33 @@ function find_VMC_energy(trap::QuantumTrap, cycles::Int64=1_000_000, algorithm::
 
     # FUNCTIONS:
 
-    _g²(r::Vector{Float64}) = exp(-2α*([1,1,β][1:D]⋅(r.^2)))
-    _f²(Δr::Float64) = ((Δr > a) ? (1-a/Δr)^2 : 0.0)
+    function _g²(r::Vector{Float64})::Float64
+        tmp = r.^2
+        @inbounds if (D == 3)
+            tmp[3] *= β
+        end
+        return exp(-2α*sum(tmp))
+    end
+    _f²(Δr::Float64)::Float64 = ((Δr > a) ? (1-a/Δr)^2 : 0.0)
         # are the squares of the functions g and f defined in the report, used to calculate the Metropolis acceptance ratio.
 
-    _U(r::Vector{Float64})::Float64 = [1,1,λ^2][1:D]⋅(r.^2) # is the elliptical harmonic trap potential energy.
+    function _U(r::Vector{Float64})::Float64
+        # calculates the elliptical harmonic potential energy for the particle of index i.
+        tmp = r.^2
+        @inbounds if (D == 3)
+            tmp[3] *= λ^2
+        end
+        return sum(tmp)
+    end
 
-    _q(r::Vector{Float64})::Vector{Float64} = 4α*([1,1,β][1:D].*r)
+    function _q(r::Vector{Float64})::Vector{Float64}
+        # calculates the vector trait q for the particle of index i.
+        tmp = 4α*r
+        @inbounds if (D == 3)
+            tmp[3] *= β
+        end
+        return tmp
+    end
     _d(Δr::Float64)::Float64 = Δr^2*(Δr-a)
     _s(Δr::Vector{Float64})::Vector{Float64} = a*Δr/(2*_d(norm(Δr)))
         # are the quantities defined in the report and used to calculate the quantum drift and the local energy.
@@ -369,8 +389,8 @@ function compare_VMC_sampling(trap::QuantumTrap,resolution::Int64=100;
     println()
     println("Running ",BigInt(2sum(C))," Monte Carlo cycles ...")
     @inbounds for i in 1:resolution
-        E_RS[i],ΔE_RS[i] = find_VMC_energy(trap,Algorithm("random step",δs),C[i];initial_α=initial_α,initial_β=initial_β,output=output)
-        E_QD[i],ΔE_QD[i] = find_VMC_energy(trap,Algorithm("quantum drift",δs),C[i];initial_α=initial_α,initial_β=initial_β,output=output)
+        E_RS[i],ΔE_RS[i] = find_VMC_energy(trap,C[i],Algorithm("random step",δs);initial_α=initial_α,initial_β=initial_β,output=output)
+        E_QD[i],ΔE_QD[i] = find_VMC_energy(trap,C[i],Algorithm("quantum drift",δs);initial_α=initial_α,initial_β=initial_β,output=output)
     end
     println("VMC SAMPLING COMPARISON FINISHED!")
     println()

@@ -394,7 +394,7 @@ function compare_VMC_sampling(trap::QuantumTrap,resolution::Int64=100;
     end
     println("VMC SAMPLING COMPARISON FINISHED!")
     println()
-    E,_ = find_VMC_energy(trap,Algorithm("quantum drift",δs),10^8;initial_α=initial_α,initial_β=initial_β,output=true)
+    E,_ = find_VMC_energy(trap,10^8,Algorithm("quantum drift",δs);initial_α=initial_α,initial_β=initial_β,output=true)
     println()
 
     println("Plotting results.")

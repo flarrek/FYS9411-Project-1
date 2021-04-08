@@ -13,9 +13,9 @@ QuantumTrap(D::Int64,N::Int64) = QuantumTrap(D,N,0.0043,√8)
 
 function system_parameters(trap::QuantumTrap)
     # returns a string of the quantum trap parameters.
-    return string("D = ",trap.D,", N = ",trap.N,
-        ((trap.N > 1) ? string(", a = ",round(trap.a;digits=4)) : ""),
-        ((trap.D == 3) ? string(", λ = ",round(trap.λ;digits=4)) : ""))
+    return string("D = ",trap.D," / N = ",trap.N,
+        ((trap.N > 1) ? string(" / a = ",round(trap.a;digits=4)) : ""),
+        ((trap.D == 3) ? string(" / λ = ",round(trap.λ;digits=4)) : ""))
 end
 
 function short_system_description(trap::QuantumTrap)
@@ -39,9 +39,14 @@ struct Algorithm # is a struct for VMC algorithms.
 end
 Algorithm(sampling::String,δs::Float64=0.08) = Algorithm(sampling,δs,"analytical","normal")
 
+function algorithm_parameters(algorithm::Algorithm)
+    # returns a string of the algorithm parameters.
+    return string(" δs = ",round(algorithm.δs;digits=4))
+end
+
 function algorithm_methods(algorithm::Algorithm)
     # returns a string of the algorithm methods.
-    return string(uppercasefirst(algorithm.scattering)," scattering / ",uppercasefirst(algorithm.sampling)," sampling with δs = ",algorithm.δs," / ",
+    return string(uppercasefirst(algorithm.scattering)," scattering / ",uppercasefirst(algorithm.sampling)," sampling / ",
         uppercasefirst(algorithm.differentiation)," differentiation")
 end
 
@@ -329,7 +334,8 @@ function find_VMC_energy(trap::QuantumTrap, cycles::Int64=1_000_000, algorithm::
         println("Finding the VMC energy for ",long_system_description(trap),".")
         println()
         println("Quantum trap parameters: ",system_parameters(trap))
-        println("Algorithm: ",algorithm_methods(algorithm))
+        println("Algorithm methods: ",algorithm_methods(algorithm))
+        println("Algorithm parameters: ",algorithm_parameters(algorithm))
         println()
         println("Running ",C," Monte Carlo cycles ...")
     end
@@ -386,6 +392,7 @@ function compare_VMC_sampling(trap::QuantumTrap,resolution::Int64=100;
     println("Comparing VMC sampling methods for ",long_system_description(trap)*".")
     println()
     println("Quantum trap parameters: ",system_parameters(trap))
+    println("Algorithm parameters: δs = ",round(δs;digits=4))
     println()
     println("Running ",BigInt(2sum(C))," Monte Carlo cycles ...")
     @inbounds for i in 1:resolution
@@ -398,13 +405,13 @@ function compare_VMC_sampling(trap::QuantumTrap,resolution::Int64=100;
     println()
 
     println("Plotting results.")
-    comparison1 = plot(title="Comparison of VMC sampling from "*short_system_description(well)*"<br>("*system_parameters(well)*", δs = "*string(δs)*")",
+    comparison1 = plot(title="Comparison of VMC sampling from "*short_system_description(trap)*"<br>("*system_parameters(trap)*" / δs = "*string(δs)*")",
         legend=:bottomright,xlabel="Monte Carlo cycles",xaxis=:log,ylabel="VMC energy [ħω]")
     plot!(comparison1,C,E_RS;ribbon=ΔE_RS,fillalpha=.5,width=2,color="#4aa888",label="random step sampling")
     plot!(comparison1,C,E_QD;ribbon=ΔE_QD,fillalpha=.5,width=2,color="#aa4888",label="quantum drift sampling")
     plot!(comparison1,C,[E for i in 1:resolution];style=:dash,width=2,color="#fdce0b",label="reference VMC energy")
     display(comparison1)
-    comparison2 = plot(title="Comparison of VMC sampling error from "*short_system_description(well)*"<br>("*system_parameters(well)*", δs = "*string(δs)*")",
+    comparison2 = plot(title="Comparison of VMC sampling error from "*short_system_description(trap)*"<br>("*system_parameters(trap)*" / δs = "*string(δs)*")",
         legend=:right,xlabel="Monte Carlo cycles",xaxis=:log,ylabel="VMC energy error [ħω]")
     plot!(comparison2,C,ΔE_RS;width=2,color="#4aa888",label="random step sampling")
     plot!(comparison2,C,ΔE_QD;width=2,color="#aa4888",label="quantum drift sampling")

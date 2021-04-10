@@ -104,31 +104,43 @@ function find_VMC_energy(trap::QuantumTrap, cycles::Int64=1_000_000, algorithm::
     # FUNCTIONS:
 
     function _g²(r::Vector{Float64})::Float64
-        tmp = r.^2
-        @inbounds if (D == 3)
-            tmp[3] *= β
+        tmp = 0.0
+        @inbounds for d in 1:D
+            if (d < 3)
+                tmp += r[d]^2
+            else
+                tmp += β*r[d]^2
+            end
         end
-        return exp(-2α*sum(tmp))
+        return exp(-2α*tmp)
     end
     _f²(Δr::Float64)::Float64 = ((Δr > a) ? (1-a/Δr)^2 : 0.0)
         # are the squares of the functions g and f defined in the report, used to calculate the Metropolis acceptance ratio.
 
     function _U(r::Vector{Float64})::Float64
         # calculates the elliptical harmonic potential energy for the particle of index i.
-        tmp = r.^2
-        @inbounds if (D == 3)
-            tmp[3] *= λ^2
+        tmp = 0.0
+        @inbounds for d in 1:D
+            if (d < 3)
+                tmp += r[d]^2
+            else
+                tmp += λ^2*r[d]^2
+            end
         end
-        return sum(tmp)
+        return tmp
     end
 
     function _q(r::Vector{Float64})::Vector{Float64}
         # calculates the vector trait q for the particle of index i.
-        tmp = 4α*r
-        @inbounds if (D == 3)
-            tmp[3] *= β
+        tmp = zeros(D)
+        @inbounds for d in 1:D
+            if (d < 3)
+                tmp[d] = r[d]
+            else
+                tmp[d] = β*r[d]
+            end
         end
-        return tmp
+        return 4α*tmp
     end
     _d(Δr::Float64)::Float64 = Δr^2*(Δr-a)
     _s(Δr::Vector{Float64})::Vector{Float64} = a*Δr/(2*_d(norm(Δr)))
@@ -170,7 +182,7 @@ function find_VMC_energy(trap::QuantumTrap, cycles::Int64=1_000_000, algorithm::
                         end
                     end
                 end
-                q[i] = _q(R[i]) # stores the initial values of q.
+                q[i] = _q(R[i]) # calculates and stores the initial values of q.
             end
         elseif (algorithm.scattering == "lattice")
             # scatters the trap particles into a centered L×L×L-point square lattice with size √2 in each spatial direction.
@@ -195,10 +207,15 @@ function find_VMC_energy(trap::QuantumTrap, cycles::Int64=1_000_000, algorithm::
         # proposes a move based on the given sampling method.
         i = rand(1:N)
         if (algorithm.sampling == "random step")
-            δr = (2rand(D).-1)*δs
+            @inbounds for d in 1:D
+                δr[d] = (2rand()-1)*δs
+            end
         elseif (algorithm.sampling == "quantum drift")
             @inbounds current_Qi = _Q(i,R[i])
-            δr = 1/2*current_Qi*δs^2+rand(Normal(),D)*δs
+            dist = Normal()
+            @inbounds for d in 1:D
+                δr[d] = 1/2*current_Qi[d]*δs^2+rand(dist)*δs
+            end
         else
             error("The sampling method '",algorithm,"' is not known.")
         end
@@ -219,7 +236,11 @@ function find_VMC_energy(trap::QuantumTrap, cycles::Int64=1_000_000, algorithm::
                     return 1.0
                 elseif (algorithm.sampling == "quantum drift")
                     proposed_Qi = _Q(proposed_i,proposed_ri)
-                    return exp(-1/2*(proposed_Qi+current_Qi)⋅(δr+1/4*(proposed_Qi-current_Qi)*δs^2))
+                    tmp = 0.0
+                    @inbounds for d in 1:D
+                        tmp += (proposed_Qi[d]+current_Qi[d])*(δr[d]+1/4*(proposed_Qi[d]-current_Qi[d])*δs^2)
+                    end
+                    return exp(-1/2*tmp)
                 else
                     error("The sampling method '",algorithm,"' is not known.")
                 end

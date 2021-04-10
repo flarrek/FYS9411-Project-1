@@ -76,7 +76,7 @@ function find_VMC_energy(trap::QuantumTrap, cycles::Int64=1_000_000, algorithm::
 
     R::Vector{Vector{Float64}} = [zeros(D) for i in 1:N] # is the current configuration of the trap particles.
     ΔR::Matrix{Float64} = zeros(N,N) # is a matrix which stores all current and proposed inter-particle distances.
-    Δr = Symmetric(ΔR,:L) # are the current inter-particle distances, stored in the lower triangle of ΔR but accessed symmetrically.
+    Δr = Symmetric(ΔR) # are the current inter-particle distances, stored in the upper triangle of ΔR but accessed symmetrically.
 
     s::Matrix{Vector{Float64}} = [zeros(D) for i in 1:N,j in 1:N]
         # is a matrix which stores all current values of the vector quantities q and s as defined in the report.
@@ -87,7 +87,7 @@ function find_VMC_energy(trap::QuantumTrap, cycles::Int64=1_000_000, algorithm::
     δr::Vector{Float64} = zeros(D) # is a randomly drawn position step from the given sampling method.
 
     proposed_ri::Vector{Float64} = zeros(D) # is the proposed new position for the randomly chosen particle to move.
-    proposed_Δri = view(ΔR,1,:) # are the proposed new inter-particle distances by making the move, stored in the first row of ΔR.
+    proposed_Δri = view(ΔR,:,1) # are the proposed new inter-particle distances by making the move, stored in the first column of ΔR.
     proposed_Qi::Vector{Float64} = zeros(D) # is the quantum drift at the proposed position for the randomly chosen particle.
 
     rejected_moves::Int64 = 0 # is the number of rejected moves because of the random Metropolis acceptance.
@@ -147,7 +147,7 @@ function find_VMC_energy(trap::QuantumTrap, cycles::Int64=1_000_000, algorithm::
         # are the quantities defined in the report and used to calculate the quantum drift and the local energy.
 
     function _Q(i::Int64,ri::Vector{Float64})::Vector{Float64}
-        # calculates the quantum drift for particle i at position ri with the current configuration.
+        # calculates the quantum drift for particle i at the proposed position ri with the current configuration.
         Qi = _q(ri)
         if (a != 0.0) && (N != 1)
             @inbounds for j in 1:N
@@ -155,6 +155,20 @@ function find_VMC_energy(trap::QuantumTrap, cycles::Int64=1_000_000, algorithm::
                     continue
                 end
                 Qi += 4*_s(ri-R[j])
+            end
+        end
+        return Qi
+    end
+
+    function _Q(i::Int64)::Vector{Float64}
+        # calculates the quantum drift for particle i with the current configuration.
+        @inbounds Qi = q[i]
+        if (a != 0.0) && (N != 1)
+            @inbounds for j in 1:N
+                if (j == i)
+                    continue
+                end
+                Qi += 4*s[j,i]
             end
         end
         return Qi
@@ -172,12 +186,12 @@ function find_VMC_energy(trap::QuantumTrap, cycles::Int64=1_000_000, algorithm::
                     placing = false
                     if (a != 0.0) && (N != 1)
                         for j in 1:(i-1)
-                            ΔR[i,j] = norm(R[i]-R[j]) # calculates and stores the initial values of Δr.
-                            if (Δr[i,j] ≤ a) # replaces the particle if it overlaps with one already placed.
+                            ΔR[j,i] = norm(R[i]-R[j]) # calculates and stores the initial values of Δr.
+                            if (Δr[j,i] ≤ a) # replaces the particle if it overlaps with one already placed.
                                 placing = true
                             else # calculates and stores the initial values of s if the particle does not overlap.
-                                s[i,j] = _s(R[i]-R[j])
-                                s[j,i] = -s[i,j]
+                                s[j,i] = _s(R[i]-R[j])
+                                s[i,j] = -s[j,i]
                             end
                         end
                     end
@@ -191,9 +205,9 @@ function find_VMC_energy(trap::QuantumTrap, cycles::Int64=1_000_000, algorithm::
                 R[i] = [√2(((i-1)%(L^d))÷(L^(d-1))-(L-1)/2) for d in 1:D]
                 if (a != 0.0) && (N != 1)
                     for j in 1:(i-1) # calculates and stores the initial values of Δr and s.
-                        ΔR[i,j] = norm(R[i]-R[j])
-                        s[i,j] = _s(R[i]-R[j])
-                        s[j,i] = -s[i,j]
+                        ΔR[j,i] = norm(R[i]-R[j])
+                        s[j,i] = _s(R[i]-R[j])
+                        s[i,j] = -s[j,i]
                     end
                 end
                 q[i] = _q(R[i]) # calculates and stores the initial values of q.
@@ -211,7 +225,7 @@ function find_VMC_energy(trap::QuantumTrap, cycles::Int64=1_000_000, algorithm::
                 δr[d] = (2rand()-1)*δs
             end
         elseif (algorithm.sampling == "quantum drift")
-            @inbounds current_Qi = _Q(i,R[i])
+            current_Qi = _Q(i)
             dist = Normal()
             @inbounds for d in 1:D
                 δr[d] = 1/2*current_Qi[d]*δs^2+rand(dist)*δs
@@ -255,7 +269,7 @@ function find_VMC_energy(trap::QuantumTrap, cycles::Int64=1_000_000, algorithm::
                         continue
                     end
                     proposed_Δri[j] = norm(proposed_ri-R[j])
-                    ratio *= _f²(proposed_Δri[j])/_f²(Δr[i,j])
+                    ratio *= _f²(proposed_Δri[j])/_f²(Δr[j,i])
                 end
             end
             return min(1.0,ratio)
@@ -277,12 +291,24 @@ function find_VMC_energy(trap::QuantumTrap, cycles::Int64=1_000_000, algorithm::
         end
         i = proposed_i
         @inbounds R[i] = proposed_ri # updates the position of the particle.
-        q[i] = _q(proposed_ri) # calculates and updates the vector trait q of the particle.
+        @inbounds q[i] = _q(proposed_ri) # calculates and updates the vector trait q of the particle.
+        @inbounds for j in 1:N # calculates and updates the inter-particle distances Δr and the vector traits s related to the particle.
+            if (j == i)
+                continue
+            elseif (j < i)
+                ΔR[j,i] = norm(R[i]-R[j])
+                s[j,i] = _s(R[i]-R[j])
+                s[i,j] = -s[j,i]
+            else
+                ΔR[i,j] = norm(R[j]-R[i])
+                s[i,j] = _s(R[j]-R[i])
+                s[j,i] = -s[i,j]
+            end
+        end
     end
 
     function sample_local_energy!()
-        # updates the inter-particle distances Δr and the distance traits s related to the accepted move
-        # and samples the local energy, as well as the local energy square, at the new particle configuration.
+        # samples the local energy, as well as the local energy square, at the new particle configuration.
         @inbounds if (proposed_i == 0) && (c > 1)
             # copies the local energy samples from the last cycle if the proposed move was rejected.
             ε[c] = ε[c-1]
@@ -296,22 +322,13 @@ function find_VMC_energy(trap::QuantumTrap, cycles::Int64=1_000_000, algorithm::
                 for j in 1:N
                     if (j == i)
                         continue
-                    elseif (i == proposed_i) # updates the inter-particle distances Δr related to the accepted move.
-                        if (j < i)
-                            ΔR[i,j] = proposed_Δri[j]
-                            s[i,j] = _s(R[i]-R[j])
-                            s[j,i] = -s[i,j]
-                                # updates the distance vector traits s related to the accepted move.
-                        else
-                            ΔR[j,i] = proposed_Δri[j]
-                        end
                     end
-                    ε[c] -= a*(D-3)/(2*_d(Δr[i,j]))+q[i]⋅s[i,j]
+                    ε[c] -= a*(D-3)/(2*_d(Δr[j,i]))+q[i]⋅s[j,i]
                     for k in 1:N
                         if (k == i) || (k == j)
                             continue
                         end
-                        ε[c] -= s[i,j]⋅s[i,k]
+                        ε[c] -= s[j,i]⋅s[k,i]
                     end
                 end
             end

@@ -317,18 +317,24 @@ function find_VMC_energy(trap::QuantumTrap, cycles::Int64=1_000_000, algorithm::
         end
         @inbounds ε[c] = α*N*(D+(β-1)*(D==3))
         @inbounds for i in 1:N
-            ε[c] += 1/2*(_U(R[i])-1/4*q[i]⋅q[i])
+            ε[c] += 1/2*_U(R[i])
+            for d in 1:D
+                ε[c] -= 1/8*q[i][d]^2
+            end
             if (a != 0.0) && (N != 1)
                 for j in 1:N
                     if (j == i)
                         continue
                     end
-                    ε[c] -= a*(D-3)/(2*_d(Δr[j,i]))+q[i]⋅s[j,i]
-                    for k in 1:N
-                        if (k == i) || (k == j)
-                            continue
+                    ε[c] -= a*(D-3)/(2*_d(Δr[j,i]))
+                    for d in 1:D
+                        ε[c] -= q[i][d]*s[j,i][d]
+                        for k in 1:N
+                            if (k == i) || (k == j)
+                                continue
+                            end
+                            ε[c] -= s[j,i][d]*s[k,i][d]
                         end
-                        ε[c] -= s[j,i]⋅s[k,i]
                     end
                 end
             end

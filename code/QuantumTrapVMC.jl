@@ -37,7 +37,7 @@ struct Algorithm # is a struct for VMC algorithms.
     differentiation::String # is the method of differentiation.
     scattering::String # is the method of scattering the particles initially.
 end
-Algorithm(sampling::String,δs::Float64=0.08) = Algorithm(sampling,δs,"analytical","normal")
+Algorithm(sampling::String,δs::Float64=√0.1) = Algorithm(sampling,δs,"analytical","normal")
 
 function algorithm_parameters(algorithm::Algorithm)
     # returns a string of the algorithm parameters.
@@ -140,7 +140,7 @@ function find_VMC_energy(trap::QuantumTrap, cycles::Int64=1_000_000, algorithm::
                 tmp[d] = β*r[d]
             end
         end
-        return 4α*tmp
+        return -4α*tmp
     end
     _d(Δr::Float64)::Float64 = Δr^2*(Δr-a)
     _s(Δr::Vector{Float64})::Vector{Float64} = a*Δr/(2*_d(norm(Δr)))
@@ -329,11 +329,13 @@ function find_VMC_energy(trap::QuantumTrap, cycles::Int64=1_000_000, algorithm::
                     ε[c] -= a*(D-3)/(2*_d(Δr[j,i]))
                     for d in 1:D
                         ε[c] -= q[i][d]*s[j,i][d]
-                        for k in 1:N
-                            if (k == i) || (k == j)
-                                continue
-                            end
-                            ε[c] -= s[j,i][d]*s[k,i][d]
+                    end
+                    for k in 1:N
+                        if (k == i) || (k == j)
+                            continue
+                        end
+                        for d in 1:D
+                            ε[c] -= 2*s[j,i][d]*s[k,i][d]
                         end
                     end
                 end

@@ -109,8 +109,8 @@ function find_VMC_energy(trap::QuantumTrap, algorithm::VMCAlgorithm=VMCAlgorithm
 
     E::Float64 = 0.0 # is the calculated energy at the current variational point,
         # as well as the final VMC ground state energy of the quantum trap.
-    ΔE²::Float64 = 0.0 # is the estimated statistical variance of energy at the current variational point.
-    ΔE::Float64 = 0.0 # is the estimated statistical error of energy at the current variational point,
+    ΔE²::Float64 = 0.0 # is the estimated statistical variance of the energy at the current variational point.
+    ΔE::Float64 = 0.0 # is the estimated statistical error for the energy at the current variational point,
         # as well as the final statistical error of the VMC ground state energy of the quantum trap.
 
     Es::Array{Float64,3} = zeros(U,V,M) # is the matrix of calculated energies at each variational point.

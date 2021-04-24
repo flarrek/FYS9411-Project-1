@@ -1,4 +1,4 @@
-This is pdfTeX, Version 3.14159265-2.6-1.40.21 (MiKTeX 21.1) (preloaded format=pdflatex 2021.2.11)  7 APR 2021 15:22
+This is pdfTeX, Version 3.14159265-2.6-1.40.21 (MiKTeX 21.1) (preloaded format=pdflatex 2021.2.11)  24 APR 2021 18:46
 entering extended mode
 **./FYS9411_project1.tex
 (FYS9411_project1.tex
@@ -278,12 +278,7 @@ File: umsb.fd 2013/01/14 v3.01 AMS symbols B
 )
 [1
 
-{C:/Users/jonas/AppData/Local/MiKTeX/pdftex/config/pdftex.map}] [2]
-Underfull \hbox (badness 10000) in paragraph at lines 173--173
-[]\OT1/cmr/bx/n/12 The quan-tum drift sam-pling
- []
-
-[3]
+{C:/Users/jonas/AppData/Local/MiKTeX/pdftex/config/pdftex.map}] [2] [3]
 Overfull \hbox (24.98877pt too wide) detected at line 222
 []
  []
@@ -293,15 +288,11 @@ Overfull \hbox (10.12355pt too wide) detected at line 227
 []
  []
 
-
-Overfull \vbox (27.90982pt too high) has occurred while \output is active []
-
-
 [4] (FYS9411_project1.bbl) [5]
 
 Package amsmath Warning: Foreign command \atop;
 (amsmath)                \frac or \genfrac should be used instead
-(amsmath)                 on input line 306.
+(amsmath)                 on input line 318.
 
 [6] [7] [8] [9] (FYS9411_project1.aux)
 
@@ -309,11 +300,11 @@ LaTeX Warning: There were multiply-defined labels.
 
  ) 
 Here is how much of TeX's memory you used:
- 2920 strings out of 479618
- 38530 string characters out of 2865026
- 373143 words of memory out of 3000000
- 20086 multiletter control sequences out of 15000+200000
- 413439 words of font info for 65 fonts, out of 3000000 for 9000
+ 2931 strings out of 479618
+ 38645 string characters out of 2865026
+ 352049 words of memory out of 3000000
+ 20096 multiletter control sequences out of 15000+200000
+ 413785 words of font info for 66 fonts, out of 3000000 for 9000
  1141 hyphenation exceptions out of 8191
  81i,19n,89p,996b,316s stack positions out of 5000i,500n,10000p,200000b,50000s
 <C:/Users/jonas/AppData/Local/Programs/MiKTeX/fonts/type1/public/amsfonts/cm/
@@ -327,22 +318,27 @@ ta/Local/Programs/MiKTeX/fonts/type1/public/amsfonts/cm/cmmi10.pfb><C:/Users/jo
 nas/AppData/Local/Programs/MiKTeX/fonts/type1/public/amsfonts/cm/cmmi12.pfb><C:
 /Users/jonas/AppData/Local/Programs/MiKTeX/fonts/type1/public/amsfonts/cm/cmmi5
 .pfb><C:/Users/jonas/AppData/Local/Programs/MiKTeX/fonts/type1/public/amsfonts/
-cm/cmmi7.pfb><C:/Users/jonas/AppData/Local/Programs/MiKTeX/fonts/type1/public/a
-msfonts/cm/cmr10.pfb><C:/Users/jonas/AppData/Local/Programs/MiKTeX/fonts/type1/
-public/amsfonts/cm/cmr12.pfb><C:/Users/jonas/AppData/Local/Programs/MiKTeX/font
-s/type1/public/amsfonts/cm/cmr17.pfb><C:/Users/jonas/AppData/Local/Programs/MiK
-TeX/fonts/type1/public/amsfonts/cm/cmr5.pfb><C:/Users/jonas/AppData/Local/Progr
-ams/MiKTeX/fonts/type1/public/amsfonts/cm/cmr7.pfb><C:/Users/jonas/AppData/Loca
-l/Programs/MiKTeX/fonts/type1/public/amsfonts/cm/cmr9.pfb><C:/Users/jonas/AppDa
-ta/Local/Programs/MiKTeX/fonts/type1/public/amsfonts/cm/cmsy10.pfb><C:/Users/jo
-nas/AppData/Local/Programs/MiKTeX/fonts/type1/public/amsfonts/cm/cmsy5.pfb><C:/
-Users/jonas/AppData/Local/Programs/MiKTeX/fonts/type1/public/amsfonts/cm/cmsy7.
-pfb><C:/Users/jonas/AppData/Local/Programs/MiKTeX/fonts/type1/public/amsfonts/s
-ymbols/msbm10.pfb><C:/Users/jonas/AppData/Local/Programs/MiKTeX/fonts/type1/pub
-lic/amsfonts/symbols/msbm7.pfb>
-Output written on FYS9411_project1.pdf (9 pages, 268794 bytes).
+cm/cmmi6.pfb><C:/Users/jonas/AppData/Local/Programs/MiKTeX/fonts/type1/public/a
+msfonts/cm/cmmi7.pfb><C:/Users/jonas/AppData/Local/Programs/MiKTeX/fonts/type1/
+public/amsfonts/cm/cmmi8.pfb><C:/Users/jonas/AppData/Local/Programs/MiKTeX/font
+s/type1/public/amsfonts/cm/cmr10.pfb><C:/Users/jonas/AppData/Local/Programs/MiK
+TeX/fonts/type1/public/amsfonts/cm/cmr12.pfb><C:/Users/jonas/AppData/Local/Prog
+rams/MiKTeX/fonts/type1/public/amsfonts/cm/cmr17.pfb><C:/Users/jonas/AppData/Lo
+cal/Programs/MiKTeX/fonts/type1/public/amsfonts/cm/cmr5.pfb><C:/Users/jonas/App
+Data/Local/Programs/MiKTeX/fonts/type1/public/amsfonts/cm/cmr6.pfb><C:/Users/jo
+nas/AppData/Local/Programs/MiKTeX/fonts/type1/public/amsfonts/cm/cmr7.pfb><C:/U
+sers/jonas/AppData/Local/Programs/MiKTeX/fonts/type1/public/amsfonts/cm/cmr9.pf
+b><C:/Users/jonas/AppData/Local/Programs/MiKTeX/fonts/type1/public/amsfonts/cm/
+cmsy10.pfb><C:/Users/jonas/AppData/Local/Programs/MiKTeX/fonts/type1/public/ams
+fonts/cm/cmsy5.pfb><C:/Users/jonas/AppData/Local/Programs/MiKTeX/fonts/type1/pu
+blic/amsfonts/cm/cmsy7.pfb><C:/Users/jonas/AppData/Local/Programs/MiKTeX/fonts/
+type1/public/amsfonts/cm/cmsy8.pfb><C:/Users/jonas/AppData/Local/Programs/MiKTe
+X/fonts/type1/public/amsfonts/cm/cmti10.pfb><C:/Users/jonas/AppData/Local/Progr
+ams/MiKTeX/fonts/type1/public/amsfonts/symbols/msbm10.pfb><C:/Users/jonas/AppDa
+ta/Local/Programs/MiKTeX/fonts/type1/public/amsfonts/symbols/msbm7.pfb>
+Output written on FYS9411_project1.pdf (9 pages, 321136 bytes).
 PDF statistics:
- 116 PDF objects out of 1000 (max. 8388607)
+ 136 PDF objects out of 1000 (max. 8388607)
  0 named destinations out of 1000 (max. 500000)
  1 words of extra memory for PDF output out of 10000 (max. 10000000)
 

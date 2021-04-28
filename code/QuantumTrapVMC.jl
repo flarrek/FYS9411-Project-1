@@ -725,3 +725,5 @@ function compare_VMC_sampling(trap::QuantumTrap, cycles::Vector{Int64}=[10^e for
     display(comparison)
     return
 end
+
+; # suppresses inclusion output.

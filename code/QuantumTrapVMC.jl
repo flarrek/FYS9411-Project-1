@@ -33,12 +33,12 @@ end
 
 
 function find_VMC_energy(trap::QuantumTrap, cycles::Vector{Int64}=[1_000_000];
-        αs::Vector{Float64}=[0.5], βs::Vector{Float64}=[trap.λ], variation::String="gradient descent",
-        scattering="normal", differentiation::String="analytical", sampling::String="quantum drift",
-        δg::Float64=0.001, δd::Float64=0.01, δs::Float64=√0.4, text_output::String="some", plot_output::String="none")
+        αs::Vector{Float64}=[0.5], βs::Vector{Float64}=[trap.λ],
+        variation::String="gradient descent", scattering="normal", sampling::String="quantum drift",
+        δg::Float64=0.001, δs::Float64=√0.4, text_output::String="some", plot_output::String="none")
     # finds the VMC approximate ground state energy of the given quantum trap by varying the parameters α and β
     # using the given method of variation, and performing the given number of Monte Carlo cycles at each variational point
-    # using the given methods of scattering, differentiation and sampling.
+    # using the given methods of scattering and sampling.
 
     # CONSTANTS:
 
@@ -107,10 +107,6 @@ function find_VMC_energy(trap::QuantumTrap, cycles::Vector{Int64}=[1_000_000];
         error("The initial scattering method '",scattering,"' is not known. Choose either 'normal' or 'lattice'.")
     end
 
-    if differentiation ∉ ("analytical","numerical")
-        error("The differentiation method '",differentiation,"' is not known. Choose either 'analytical' or 'numerical'.")
-    end
-
     if sampling ∉ ("random step","quantum drift")
         error("The sampling method '",sampling,"' is not known. Choose either 'random step' or 'quantum drift'.")
     end
@@ -122,12 +118,6 @@ function find_VMC_energy(trap::QuantumTrap, cycles::Vector{Int64}=[1_000_000];
         if U > 1 || V > 1
             error("Too many values for α or β were provided. ",
                 "For gradient descent variation, provide only one initial value for each parameter.")
-        end
-    end
-
-    if differentiation == "numerical"
-        if δd ≤ 0.0
-            error("Provide a positive value for the numerical differentiation step size δd.")
         end
     end
 
@@ -585,10 +575,9 @@ function find_VMC_energy(trap::QuantumTrap, cycles::Vector{Int64}=[1_000_000];
         println("Finding the VMC energy for ",long_system_description(trap),".")
         println()
         println("Quantum trap parameters: ",system_parameters(trap))
-        println("Algorithm methods: ",uppercasefirst(variation)," variation / ",uppercasefirst(scattering)," scattering / ",
-            uppercasefirst(differentiation)," differentiation / ",uppercasefirst(sampling)," sampling")
+        println("Algorithm methods: ",uppercasefirst(variation)," variation / ",
+            uppercasefirst(scattering)," scattering / ",uppercasefirst(sampling)," sampling")
         println("Algorithm parameters: ",(variation == "gradient descent" ? string("δg = ",round(δg;digits=4)," / ") : ""),
-            (differentiation == "numerical" ? string("δd = ",round(δd;digits=4)," / ") : ""),
             "δs = ",round(δs;digits=4))
         println()
     end
@@ -709,7 +698,7 @@ function compare_VMC_sampling(trap::QuantumTrap,resolution::Int64=10;α::Float64
     println("Comparing VMC sampling methods for ",long_system_description(trap),".")
     println()
     println("Quantum trap parameters: ",system_parameters(trap))
-    println("Algorithm methods: Normal scattering / Analytical differentiation")
+    println("Algorithm methods: Normal scattering / Random step & Quantum drift sampling")
     println("Algorithm parameters: δs = ",round(δs;digits=4))
     println("Variational parameters: α = ",round(α;digits=4),(D == 3 ? string(" / β = ",round(β;digits=4)) : ""))
     println()

@@ -35,7 +35,7 @@ end
 function find_VMC_energy(trap::QuantumTrap, cycles::Vector{Int64}=[1_000_000];
         αs::Vector{Float64}=[0.5], βs::Vector{Float64}=[trap.λ],
         variation::String="gradient descent", scattering="normal", sampling::String="quantum drift",
-        δg::Float64=0.001, δs::Float64=√0.4, text_output::String="some", plot_output::String="none")
+        δv::Float64=0.001, δg::Float64=0.01, δs::Float64=√0.4, text_output::String="some", plot_output::String="none")
     # finds the VMC approximate ground state energy of the given quantum trap by varying the parameters α and β
     # using the given method of variation, and performing the given number of Monte Carlo cycles at each variational point
     # using the given methods of scattering and sampling.
@@ -112,8 +112,11 @@ function find_VMC_energy(trap::QuantumTrap, cycles::Vector{Int64}=[1_000_000];
     end
 
     if variation == "gradient descent"
+        if δv ≤ 0.0
+            error("Provide a positive value for the gradient descent step size δv.")
+        end
         if δg ≤ 0.0
-            error("Provide a positive value for the gradient descent step size δg.")
+            error("Provide a positive value for the gradient descent convergence threshold δg.")
         end
         if U > 1 || V > 1
             error("Too many values for α or β were provided. ",
@@ -530,7 +533,7 @@ function find_VMC_energy(trap::QuantumTrap, cycles::Vector{Int64}=[1_000_000];
         if text_output == "full"
             println()
             println("Running ",C," Monte Carlo cycles at the variational point (",
-            "α = ",round(α;digits=4),(D == 3 ? string(" / β = ",round(β;digits=4)) : ""),") ... ")
+            "α = ",round(α;digits=4),(D == 3 ? string(" / β = ",round(β;digits=4)) : ""),") ...")
         end
         reset_variables!()
         scatter_particles!()
@@ -577,17 +580,21 @@ function find_VMC_energy(trap::QuantumTrap, cycles::Vector{Int64}=[1_000_000];
         println("Quantum trap parameters: ",system_parameters(trap))
         println("Algorithm methods: ",uppercasefirst(variation)," variation / ",
             uppercasefirst(scattering)," scattering / ",uppercasefirst(sampling)," sampling")
-        println("Algorithm parameters: ",(variation == "gradient descent" ? string("δg = ",round(δg;digits=4)," / ") : ""),
+        println("Algorithm parameters: ",
+            (variation == "gradient descent" ? string("δv = ",round(δv;digits=4)," / δg = ",round(δg;digits=4)," / ") : ""),
             "δs = ",round(δs;digits=4))
         println()
     end
     if text_output == "some"
         println()
         if variation == "range"
-            println("Running ",U*V*C," Monte Carlo cycles ...")
+            println("Running ",U*V*C," Monte Carlo cycles at the variational point",
+                (U == 1 && V == 1 ? string(" (α = ",round(α;digits=4),
+                (D == 3 ? string(" / β = ",round(β;digits=4)) : "")) : string("s (α ∈ ",αs,
+                (D == 3 ? string(" / β ∈ ",βs) : "" ))),") ...")
         elseif variation == "gradient descent"
             println("Gradient descending from the initial variational point (",
-            "α = ",round(α;digits=4),(D == 3 ? string(" / β = ",round(β;digits=4)) : ""),") ... ")
+            "α = ",round(α;digits=4),(D == 3 ? string(" / β = ",round(β;digits=4)) : ""),") ...")
         end
     end
 
@@ -623,16 +630,16 @@ function find_VMC_energy(trap::QuantumTrap, cycles::Vector{Int64}=[1_000_000];
     elseif variation == "gradient descent"
         C = 10_000
         find_energy!()
-        while ∂E∂α^2 > 1e-4 || D == 3 && ∂E∂β^2 > 1e-4
-            while ∂E∂α*δg ≥ α # ensures that negative values for α are never considered.
+        while ∂E∂α^2 > δg^2 || D == 3 && ∂E∂β^2 > δg^2
+            while ∂E∂α*δv ≥ α # ensures that negative values for α are never considered.
                 ∂E∂α *= 0.5
             end
-            α -= ∂E∂α*δg
+            α -= ∂E∂α*δv
             if D == 3
-                while ∂E∂β*δg ≥ β # ensures that negative values for β are never considered.
+                while ∂E∂β*δv ≥ β # ensures that negative values for β are never considered.
                     ∂E∂β *= 0.5
                 end
-                β -= ∂E∂β*δg
+                β -= ∂E∂β*δv
             end
             find_energy!()
         end
@@ -641,7 +648,7 @@ function find_VMC_energy(trap::QuantumTrap, cycles::Vector{Int64}=[1_000_000];
             # switches to range variation so that variational derivatives are not calculated at the final variational point.
         if text_output == "some"
             println("Running ",C," Monte Carlo cycles at the final variational point (",
-            "α = ",round(α;digits=4),(D == 3 ? string(" / β = ",round(β;digits=4)) : ""),") ... ")
+            "α = ",round(α;digits=4),(D == 3 ? string(" / β = ",round(β;digits=4)) : ""),") ...")
         end
         find_energy!(1,1)
         Es = Es[1,1,:]

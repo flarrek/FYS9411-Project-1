@@ -236,12 +236,12 @@ The crudest way to minimise the bound is to calculate it for a range of variatio
 
 In appendix \ref{vargrad} an analytical expression for the gradient is calculated, which turns out to require sampling of the quantities $\frac{\partial\ln\Psi}{\partial\alpha}$ and $\frac{\partial\ln\Psi}{\partial\beta}$ as well as their products with the local energy $\varepsilon$ at each Monte Carlo cycle so that the expected values $\ev{\frac{\partial\ln\Psi}{\partial\alpha_i}\varepsilon}_\Pi$ and $\ev{\frac{\partial\ln\Psi}{\partial\alpha_i}}_\Pi$ can be estimated. Then, new, better values of $\alpha$ and $\beta$ can be found through
 \begin{align}
-\alpha' &= \alpha-\frac{\partial\ev{\varepsilon}_\Pi}{\partial\alpha}\delta g, \\
-\beta' &= \beta-\frac{\partial\ev{\varepsilon}_\Pi}{\partial\beta}\delta g,
+\alpha' &= \alpha-\frac{\partial\ev{\varepsilon}_\Pi}{\partial\alpha}\delta v, \\
+\beta' &= \beta-\frac{\partial\ev{\varepsilon}_\Pi}{\partial\beta}\delta v,
 \end{align}
-for some small step size $\delta g$. This step size should be tuned so that it is small enough for the gradient descent to converge towards the closest variational minimum, but no smaller as the convergence will then be slower. When the gradient $\frac{\partial\ev{\varepsilon}_\Pi}{\partial\alpha_i}$ is less than some small convergence threshold in both directions, approximately optimal values of $\alpha$ and $\beta$ have been found. The smaller the convergence threshold, the better the approximation.
+for some small step size $\delta v$. This step size should be tuned so that it is small enough for the gradient descent to converge towards the closest variational minimum, but no smaller as the convergence will then be slower. When the gradient $\frac{\partial\ev{\varepsilon}_\Pi}{\partial\alpha_i}$ is less than some small convergence threshold $\delta g$ in both directions, approximately optimal values of $\alpha$ and $\beta$ have been found. The smaller the convergence threshold, the better the approximation.
 
-Because of the finite step size and convergence threshold, gradient descent as described here is only approximate anyway, so there is no need to run too many Monte Carlo cycles at each variational point during descent. Hence a large number of Monte Carlo cycles will only be run at the final, optimal variational point, and so gradient descent variation should both be faster and more accurate than range variation, especially when the optimal variational parameters are not known.
+Because of the finite step size $\delta v$ and convergence threshold $\delta g$, gradient descent as described here is only approximate anyway, so there is no need to run too many Monte Carlo cycles at each variational point during descent. Hence a large number of Monte Carlo cycles will only be run at the final, optimal variational point, and so gradient descent variation should both be faster and more accurate than range variation, especially when the optimal variational parameters are not known.
 
 \subsection{Block resampling}
 |||beskrivelse av blocking|||

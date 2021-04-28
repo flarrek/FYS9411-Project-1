@@ -681,15 +681,13 @@ function find_VMC_energy(trap::QuantumTrap, cycles::Vector{Int64}=[1_000_000];
 end
 
 
-function compare_VMC_sampling(trap::QuantumTrap,resolution::Int64=10;α::Float64=0.5,β::Float64=trap.λ,δs::Float64=√0.1)
-    # compares the two VMC sampling methods by plotting their results against a number of Monte Carlo cycles
-    # spanning from 10 to 10_000000.
+function compare_VMC_sampling(trap::QuantumTrap, cycles::Vector{Int64}=[10^e for e in 1:7];
+        α::Float64=0.5, β::Float64=trap.λ,δs::Float64=√0.4)
+    # compares the two VMC sampling methods by plotting their results against given numbers of Monte Carlo cycles.
 
     # CONSTANTS:
 
     D::Int64 = trap.D # is the dimension of the quantum trap.
-    cycles::Vector{Int64} = [round(10^e) for e in range(1,7;length=resolution)]
-        # is the vector of Monte Carlo cycles for which to store and plot the energies.
 
 
     # EXECUTIONS:
@@ -713,7 +711,7 @@ function compare_VMC_sampling(trap::QuantumTrap,resolution::Int64=10;α::Float64
     comparison = plot(title="Comparison of VMC sampling for "*short_system_description(trap)*
         "<br>("*system_parameters(trap)*" / δs = "*string(round(δs;digits=4))*")<br>"*
         "α = "*string(round(α;digits=4))*(D == 3 ? string(" / β = ",round(β;digits=4)) : ""),
-        legend=:bottomright,xlabel="Monte Carlo cycles",xaxis=:log,ylabel="VMC energy [ħω]")
+        legend=:bottomright,xlabel="Monte Carlo cycles",xaxis=:log,ylabel="energy [ħω]")
     plot!(comparison,cycles,Es_RS;ribbon=ΔEs_RS,fillalpha=.5,width=2,color="#4aa888",label="random step sampling")
     plot!(comparison,cycles,Es_QD;ribbon=ΔEs_QD,fillalpha=.5,width=2,color="#aa4888",label="quantum drift sampling")
     plot!(comparison,cycles,[E for i in 1:resolution];style=:dash,width=2,color="#fdce0b",label="reference energy")

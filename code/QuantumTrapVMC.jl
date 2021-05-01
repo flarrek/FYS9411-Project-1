@@ -32,7 +32,7 @@ function long_system_description(trap::QuantumTrap)
 end
 
 
-function find_VMC_energy(trap::QuantumTrap, cycles::Vector{Int64}=[1_000_000];
+function find_VMC_energy(trap::QuantumTrap, cycles::Vector{Int64}=[1_000000];
         αs::Vector{Float64}=[0.5], βs::Vector{Float64}=[trap.λ],
         variation::String="gradient descent", scattering="normal", sampling::String="quantum drift",
         δv::Float64=0.001, δg::Float64=0.01, δs::Float64=√0.4, text_output::String="some", plot_output::String="none")
@@ -51,7 +51,10 @@ function find_VMC_energy(trap::QuantumTrap, cycles::Vector{Int64}=[1_000_000];
     V::Int64 = length(βs) # is the number of β values to be considered (if range variation).
     W::Int64 = length(cycles) # is the number of energies to calculate and store at each variational point
         # (used to plot convergence of the Monte Carlo sampling methods).
+
     C::Int64 = cycles[end] # is the number of Monte Carlo cycles to be run in total at each variational point.
+    B::Int64 = floor(Int,log2(C))
+            # is the 2-logarithm of the number of Monte Carlo cycles to be run in total at each variational point.
 
 
     # ASSERTIONS:
@@ -85,9 +88,9 @@ function find_VMC_energy(trap::QuantumTrap, cycles::Vector{Int64}=[1_000_000];
         error("The text output choice '",text_output,"' is not valid. Choose either 'full', 'some' or 'none'.")
     end
 
-    if plot_output ∉ ("convergence","variation","configurations","none")
+    if plot_output ∉ ("convergence","variation","configurations","resampling","none")
         error("The plot output choice '",plot_output,"' is not valid. ",
-            "Choose either 'convergence', 'variation', 'configurations' or 'none'.")
+            "Choose either 'convergence', 'variation', 'configurations', 'resampling' or 'none'.")
     end
 
     if plot_output == "variation" && U == 1
@@ -162,7 +165,7 @@ function find_VMC_energy(trap::QuantumTrap, cycles::Vector{Int64}=[1_000_000];
 
     rejected_moves::Int64 = 0
         # is the number of rejected moves at the current variational point because of random Metropolis acceptance.
-    A::Int64 = 0
+    acceptance::Int64 = 0
         # is the total percentage of Metropolis accepted moves at the current variational point.
 
     ε::Vector{Float64} = zeros(C)
@@ -185,6 +188,11 @@ function find_VMC_energy(trap::QuantumTrap, cycles::Vector{Int64}=[1_000_000];
         end
             # are the calculated variational derivatives at the current variational point.
     end
+
+    optimal_E::Float64 = NaN # is the currently optimal energy (used to store samples for block resampling).
+    optimal_ε::Vector{Float64} = zeros(C)
+        # are the sampled local energies from each Monte Carlo cycle at the currently optimal variational point
+        # (used for block resampling).
 
     E::Float64 = 0.0 # is the calculated energy at the current variational point,
         # as well as the final VMC ground state energy of the quantum trap.
@@ -432,7 +440,7 @@ function find_VMC_energy(trap::QuantumTrap, cycles::Vector{Int64}=[1_000_000];
         end
     end
 
-    function sample_quantities!()
+    function sample_energy!()
         # samples the local energy, the local energy square
         # as well as variational derivative quantities at the new particle configuration.
 
@@ -506,7 +514,7 @@ function find_VMC_energy(trap::QuantumTrap, cycles::Vector{Int64}=[1_000_000];
         end
     end
 
-    function calculate_averages!()
+    function calculate_means!()
         # calculates the energy, the statistical variance and error of the energy
         # as well as the variational derivatives at the current variational point.
         E = sum(ε)/c
@@ -519,11 +527,61 @@ function find_VMC_energy(trap::QuantumTrap, cycles::Vector{Int64}=[1_000_000];
             end
         end
         ΔE = √ΔE²
+        if isnan(optimal_E) || E < optimal_E
+            # stores the energy and energy samples as optimal if they are lower than the currently optimal values.
+            optimal_E = E
+            optimal_ε = ε[1:c]
+        end
         if variation == "gradient descent"
             ∂E∂α = 2sum(∂lnΨ∂αε)/c-2sum(∂lnΨ∂α)/c*E
             if D == 3
                 ∂E∂β = 2sum(∂lnΨ∂βε)/c-2sum(∂lnΨ∂β)/c*E
             end
+        end
+    end
+
+    function resample_energy!()
+        # calculates a better estimate of the statistical error for the final VMC energy through block resampling.
+
+        function van(samples::Vector{Float64})::Float64 # calculates the variance of the given samples.
+            return sum(samples.^2)/length(samples)-mean(samples)^2
+        end
+
+        function block(samples::Vector{Float64})::Vector{Float64}
+            # blocks the given samples into pairs and returns the mean values of each pair.
+            N_samples = length(samples)
+            if N_samples == 1
+                return samples # returns the same sample if there is only one sample left.
+            end
+            blocked_samples = zeros(floor(Int,N_samples/2))
+            @inbounds for i in 1:length(blocked_samples)
+                blocked_samples[i] = (samples[2i-1]+samples[2i])/2
+            end
+            return blocked_samples
+        end
+
+        errors = zeros(B) # are the resampled statistical errors for the final VMC energy.
+        b = 0 # is the number of blockings currently done.
+        for w in 1:W
+            samples = optimal_ε[1:cycles[w]]
+            errors[1] = √(van(samples)/length(samples))
+            b = 1
+            samples = block(samples)
+            errors[b+1] = √(van(samples)/length(samples))
+            while errors[b+1] > errors[b]
+                b += 1
+                samples = block(samples)
+                errors[b+1] = √(van(samples)/length(samples))
+            end
+            ΔEs[w] = errors[b]
+        end
+        ΔE = ΔEs[end]
+        if plot_output == "resampling"
+            plout = plot(title="Block resampling of VMC error for "*short_system_description(trap)*
+                "<br>("*system_parameters(trap)*")<br>"*
+                "α = "*string(round(α;digits=4))*(D == 3 ? string(" / β = ",round(β;digits=4)) : ""),
+                xlabel="blockings",ylabel="VMC energy error [ħω]")
+            @inbounds plot!(plout,0:b,errors[1:(b+1)];fillrange=zeros(b+1),fillalpha=.5,width=2,color="#fdce0b",alpha=.2,label=false)
         end
     end
 
@@ -542,11 +600,11 @@ function find_VMC_energy(trap::QuantumTrap, cycles::Vector{Int64}=[1_000_000];
             propose_move!()
             judge_move!()
             move_particles!()
-            sample_quantities!()
+            sample_energy!()
             if u > 0 && v > 0
                 @inbounds for w in 1:W
                     if c == cycles[w]
-                        calculate_averages!()
+                        calculate_means!()
                         Es[u,v,w] = E
                         ΔEs[u,v,w] = ΔE
                     end
@@ -554,16 +612,16 @@ function find_VMC_energy(trap::QuantumTrap, cycles::Vector{Int64}=[1_000_000];
             end
         end
         if u == 0 || v == 0
-            calculate_averages!()
+            calculate_means!()
         end
-        A = round(Int,100*(1-rejected_moves/c))
-        if A == 0
+        acceptance = round(Int,100*(1-rejected_moves/c))
+        if acceptance == 0
             error("The acceptance turned out to be zero!")
         end
         if text_output == "full"
             println(c," Monte Carlo cycles finished!")
             println()
-            println("Acceptance: ",A,"%")
+            println("Acceptance: ",acceptance,"%")
             println("Energy: ",round(E;digits=4)," ± ",round(ΔE;digits=4))
             println()
         end
@@ -590,8 +648,8 @@ function find_VMC_energy(trap::QuantumTrap, cycles::Vector{Int64}=[1_000_000];
         if variation == "range"
             println("Running ",U*V*C," Monte Carlo cycles at the variational point",
                 (U == 1 && V == 1 ? string(" (α = ",round(α;digits=4),
-                (D == 3 ? string(" / β = ",round(β;digits=4)) : "")) : string("s (α ∈ ",αs,
-                (D == 3 ? string(" / β ∈ ",βs) : "" ))),") ...")
+                (D == 3 ? string(" / β = ",round(β;digits=4)) : "")) : string("s (α ∈ ",round.(αs;digits=4),
+                (D == 3 ? string(" / β ∈ ",round.(βs;digits=4)) : "" ))),") ...")
         elseif variation == "gradient descent"
             println("Gradient descending from the initial variational point (",
             "α = ",round(α;digits=4),(D == 3 ? string(" / β = ",round(β;digits=4)) : ""),") ...")
@@ -618,7 +676,7 @@ function find_VMC_energy(trap::QuantumTrap, cycles::Vector{Int64}=[1_000_000];
                 plout = plot(title="VMC variation for "*short_system_description(trap)*
                     "<br>("*system_parameters(trap)*(D == 3 ? string(" / β = ",round(β;digits=4)) : "")*")",
                     xlabel="α",ylabel="energy [ħω]")
-                    plot!(plout,αs,Es[:,1,W];ribbon=ΔEs[:,1,W],fillalpha=.5,width=2,color="#fdce0b",label=false)
+                    plot!(plout,αs,Es[:,1,W];width=2,color="#fdce0b",label=false)
             else
                 plout = plot(title="VMC variation for "*short_system_description(trap)*
                     "<br>("*system_parameters(trap)*")",xlabel="α",ylabel="β",zlabel="energy [ħω]")
@@ -651,9 +709,11 @@ function find_VMC_energy(trap::QuantumTrap, cycles::Vector{Int64}=[1_000_000];
             "α = ",round(α;digits=4),(D == 3 ? string(" / β = ",round(β;digits=4)) : ""),") ...")
         end
         find_energy!(1,1)
+        optimal_ε = ε[1:c]
         Es = Es[1,1,:]
         ΔEs = ΔEs[1,1,:]
     end
+    resample_energy!()
 
     if text_output == "some"
         println("VMC simulation finished!")
@@ -721,7 +781,7 @@ function compare_VMC_sampling(trap::QuantumTrap, cycles::Vector{Int64}=[10^e for
         legend=:bottomright,xlabel="Monte Carlo cycles",xaxis=:log,ylabel="energy [ħω]")
     plot!(comparison,cycles,Es_RS;ribbon=ΔEs_RS,fillalpha=.5,width=2,color="#4aa888",label="random step sampling")
     plot!(comparison,cycles,Es_QD;ribbon=ΔEs_QD,fillalpha=.5,width=2,color="#aa4888",label="quantum drift sampling")
-    plot!(comparison,cycles,[E for i in 1:resolution];style=:dash,width=2,color="#fdce0b",label="reference energy")
+    plot!(comparison,cycles,fill(E,length(cycles));style=:dash,width=2,color="#fdce0b",label="reference energy")
     display(comparison)
     return
 end

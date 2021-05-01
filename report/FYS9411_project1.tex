@@ -3,7 +3,8 @@
 \usepackage{multicol}
 \usepackage{amsmath,amssymb}
 \usepackage{physics}
-\DeclareMathOperator{\variance}{var}
+\DeclareMathOperator{\van}{van}
+\DeclareMathOperator{\aucov}{aucov}
 
 
 \title{\small FYS9411 – Computational Physics II \\
@@ -117,15 +118,15 @@ Monte Carlo simulations in general are based on drawing a series of random sampl
 
 
 \subsection{The Metropolis algorithm} \label{Metropolis}
-The Metropolis algorithm is an algorithm which makes it possible to sample from a just some probability distribution with an unknown constant, and hence is perfectly suited for Variational Monte Carlo. The algorithm is based on constructing an ergodic Markov chain with $\Pi$ as its stationary distribution and letting this Markov chain run from some initial configuration, sampling the local energy $\varepsilon$ along the way. The longer the Markov chain is allowed to run, the more of the distribution $\Pi$ is fleshed out, and the better the resulting mean value of $\varepsilon$ matches the actual expected value of $\varepsilon$. For $C$ Monte Carlo cycles, where one cycle is one step in the Markov chain, the mean value of $\varepsilon$, denoted from here on as $E_\text{VMC}$, is given by
+The Metropolis algorithm is an algorithm which makes it possible to sample from a just some probability distribution with an unknown constant, and hence is perfectly suited for Variational Monte Carlo. The algorithm is based on constructing an ergodic Markov chain with $\Pi$ as its stationary distribution and letting this Markov chain run from some initial configuration, sampling the local energy $\varepsilon$ along the way. The longer the Markov chain is allowed to run, the more of the distribution $\Pi$ is fleshed out, and the better the resulting mean value of $\varepsilon$ matches the actual expected value of $\varepsilon$. This follows from the central limit theorem, which indeed states that for $C$ Monte Carlo cycles (where one cycle is one step in the Markov chain), the expected value of $\varepsilon$ is approximated by the sample mean, hereafter denoted as $E$:
 \begin{equation}
-E_\text{VMC} = \ev{\varepsilon} = \frac{1}{C}\sum\limits_{c = 1}^C \varepsilon[\vec{R}_c]
+\ev{\varepsilon}_\Pi \approx E = \frac{1}{C}\sum\limits_{c = 1}^C \varepsilon[\vec{R}_c]. \label{mean}
 \end{equation}
-and the statistical error of this compared to the true expected value $\ev{\varepsilon}_\Pi$ can be shown to be
+The statistical error of this approximation is given by the same theorem to be
 \begin{equation} 
-\Delta E_\text{VMC} = \sqrt{\frac{1}{C} \variance\varepsilon} = \sqrt{\frac{1}{C}\left(\frac{1}{C}\sum\limits_{c = 1}^C \varepsilon^2[\vec{R}_c] - \ev{\varepsilon}^2\right)}.
+\Delta E = \sqrt{\frac{1}{C} \van[\varepsilon]} = \sqrt{\frac{1}{C}\left(\frac{1}{C}\sum\limits_{c = 1}^C \varepsilon^2[\vec{R}_c] - E^2\right)}, \label{error}
 \end{equation}
-In these equations, $c$ is an index of each cycle and $\vec{R}_c$ is the configuration at that cycle.
+where $\van\varepsilon$ is the sample variance. In these equations, $c$ is an index of each cycle and $\vec{R}_c$ is the configuration at that cycle.
 
 The Metropolis Markov chain is constructed from two transition probabilities: the proposal distribution $P[\vec{R}'|\vec{R}]$, which gives the probability of proposing a move to some configuration $\vec{R}'$ when the last sample was drawn at $\vec{R}$, and the acceptance probability $A[\vec{R}'|\vec{R}]$ which gives the probability of accepting this same proposed move. Note that while both $P$ and $A$ must take values between $0$ and $1$, $P$ must be a proper probability distribution in the sense that for all $\vec{R}$,
 \begin{equation}
@@ -244,7 +245,21 @@ for some small step size $\delta v$. This step size should be tuned so that it i
 Because of the finite step size $\delta v$ and convergence threshold $\delta g$, gradient descent as described here is only approximate anyway, so there is no need to run too many Monte Carlo cycles at each variational point during descent. Hence a large number of Monte Carlo cycles will only be run at the final, optimal variational point, and so gradient descent variation should both be faster and more accurate than range variation, especially when the optimal variational parameters are not known.
 
 \subsection{Block resampling}
-|||beskrivelse av blocking|||
+As described in section \ref{Metropolis}, the calculated energy bound $E_\text{VMC}$ converges towards the true bound $\ev{\varepsilon}_\Pi$ for a large number of Monte Carlo cycles $C$. However, the statistical error given in \eqref{error} is only correct if there is no correlation between the samples. The Metropolis algorithm presented here however, proposes to move only a single particle a short distance with each Monte Carlo cycle. Therefore two configurations following each other in the proposed Markov chain should be strongly correlated; indeed there should be correlation between whole chains of subsequent configurations because the system needs several cycles to "get away" from any current configuration. A more formal way of measuring this correlation is by considering the sample autocovariance
+\begin{equation}
+\aucov_l[\varepsilon] = \frac{1}{C-l}\sum\limits_c^{C-l} \left(\varepsilon[\vec{R}_c]-\ev{\varepsilon}\right)\left(\varepsilon[\vec{R}_{c+l}]-\ev{\varepsilon}\right)
+\end{equation}
+for all chain lengths $l$ less than $C$. As long as this covariance is finite for any $l$, the samples generated from the Metropolis algorithm are correlated, which means that the statistical error formula \eqref{error} should be replaced by
+\begin{equation}
+\Delta E_\text{VMC} = \sqrt{\frac{1}{C} \left(\van[\varepsilon]+2\sum\limits_{l=1}^{C-1} \aucov_l[\varepsilon]\right)}. \label{error2}
+\end{equation}
+This expression involves a double sum in the autocovariance term, which can be quite costly for long Monte Carlo simulations with a high amount of samples.
+
+A more efficient method of estimating the correct statistical error, is so-called "block resampling". Resampling of an experiment means extracting better statistical estimates using nothing but the original sample set. The block resampling method is based on the idea that the statistical error of the sample set becomes more apparent if the samples are partitioned into larger blocks and the block averages are used as samples instead. Mathematically, the sample set is transformed with
+\begin{equation}
+\varepsilon'_c = \frac{\varepsilon_{2c-1}+\varepsilon_{2c}}{2}, \label{blocking}
+\end{equation}
+for all $c$ from $1$ to $\frac{C}{2}$. The new sample set is half the size of the original sample set, but both the sample mean and the statistical error are conserved through this "blocking transformation". The sample variance however will be different, and it can be shown that the transformation corresponds to "shifting weight" from the autocovariance terms in \eqref{blocking} to the variance term. By blocking multiple times, this shifting continues until the samples are no longer correlated. At this point, the statistical error formula \eqref{error2} reduces to the simple form in \eqref{error}. Continued blocking will eventually shift the error away from the variance term again when the number of samples approaches zero. However, the sample variance will converge strongly towards its maximum and fluctuate around it for a while before declining. Hence blocking can simply be continued until the sample variance declines for the first time. The maximal value of the sample variance can then be used with equation \eqref{error} to provide a much better estimate of the statistical error for the VMC results.
 
 
 \section{Method} \label{method}

@@ -733,11 +733,16 @@ function find_VMC_energy(trap::QuantumTrap, cycles::Vector{Int64}=[1_000000];
     if plot_output == "configuration"
         plot_particles()
     elseif plot_output == "convergence"
+        if sampling == "random step"
+            sampling_colour = "#4aa888"
+        elseif sampling == "quantum drift"
+            sampling_colour = "#aa4888"
+        end
         plout = plot(title="Convergence of VMC sampling for "*short_system_description(trap)*
             "<br>("*system_parameters(trap)*" / δs = "*string(round(δs;digits=4))*")<br>"*
             "α = "*string(round(α;digits=4))*(D == 3 ? string(" / β = ",round(β;digits=4)) : ""),
             legend=:bottomright,xlabel="Monte Carlo cycles",xaxis=:log,ylabel="VMC energy [ħω]")
-        plot!(plout,cycles,Es;ribbon=ΔEs,fillalpha=.5,width=2,color="#4aa888",label=sampling*" sampling")
+        plot!(plout,cycles,Es;ribbon=ΔEs,fillalpha=.5,width=2,color=sampling_colour,label=sampling*" sampling")
         plot!(plout,cycles,[E for i in 1:W];style=:dash,width=2,color="#fdce0b",label="reference VMC energy")
     end
     if plot_output != "none"

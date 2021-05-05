@@ -2,6 +2,10 @@ using LinearAlgebra
 using Distributions
 using Plots
 
+using Base.Threads
+import Base.Threads.@spawn
+import Base.Threads.@threads
+
 
 struct QuantumTrap # is a struct for elliptical quantum trap systems.
     D::Int64 # is the dimension of the quantum trap.
@@ -12,19 +16,19 @@ end
 QuantumTrap(D::Int64,N::Int64) = QuantumTrap(D,N,0.0043,√8)
 QuantumTrap(D::Int64,N::Int64,a::Float64) = QuantumTrap(D,N,a,√8)
 
-function system_parameters(trap::QuantumTrap)
+function system_parameters(trap::QuantumTrap)::String
     # returns a string of the quantum trap parameters.
     return string("D = ",trap.D," / N = ",trap.N,
         (trap.N > 1 ? string(" / a = ",round(trap.a;digits=4)) : ""),
         (trap.D == 3 ? string(" / λ = ",round(trap.λ;digits=4)) : ""))
 end
 
-function short_system_description(trap::QuantumTrap)
+function short_system_description(trap::QuantumTrap)::String
     # returns a short description of the quantum trap in words.
     return string("a ",trap.D,"D quantum trap")
 end
 
-function long_system_description(trap::QuantumTrap)
+function long_system_description(trap::QuantumTrap)::String
     # returns a long description of the quantum trap in words.
     return string("a",(trap.D == 3 ? (trap.λ == 1.0 ? " spherical " : "n elliptical ") : " "),
         trap.D,"D quantum trap with ",trap.N,
@@ -32,7 +36,7 @@ function long_system_description(trap::QuantumTrap)
 end
 
 
-function find_VMC_energy(trap::QuantumTrap, cycles::Vector{Int64}=[1_000000];
+function find_VMC_energy(trap::QuantumTrap, cycles::Vector{Int64}=[10_000,1_000000];
         αs::Vector{Float64}=[0.5], βs::Vector{Float64}=[trap.λ],
         variation::String="gradient descent", scattering="normal", sampling::String="quantum drift",
         δv::Float64=0.001, δg::Float64=0.01, δs::Float64=√0.4, text_output::String="some", plot_output::String="none")
@@ -52,9 +56,18 @@ function find_VMC_energy(trap::QuantumTrap, cycles::Vector{Int64}=[1_000000];
     W::Int64 = length(cycles) # is the number of energies to calculate and store at each variational point
         # (used to plot convergence of the Monte Carlo sampling methods).
 
+    αs = sort(αs) # sorts the vector of α values to be considered.
+    βs = sort(βs) # sorts the vector of β values to be considered.
+
+    T::Int64 = nthreads() # is the number of available threads for parallell calculation.
+
+    cycles = sort(cycles) # sorts the vector of Monte Carlo cycles to be considered.
+    cycles = [(c-c%T) for c in cycles]
+        # adjusts the numbers of Monte Carlo cycles to be considered at each variational point to match the number of threads.
     C::Int64 = cycles[end] # is the number of Monte Carlo cycles to be run in total at each variational point.
     B::Int64 = floor(Int,log2(C))
-            # is the 2-logarithm of the number of Monte Carlo cycles to be run in total at each variational point.
+        # is the 2-logarithm of the number of Monte Carlo cycles to be run in total at each variational point
+        # (used to plot block resampling of statistical error for the final VMC energy.)
 
 
     # ASSERTIONS:
@@ -115,15 +128,21 @@ function find_VMC_energy(trap::QuantumTrap, cycles::Vector{Int64}=[1_000000];
     end
 
     if variation == "gradient descent"
+        if U > 1 || V > 1
+            error("Too many values for α or β were provided. ",
+                "For gradient descent variation, provide only one initial value for each parameter.")
+        end
+        if W < 2
+            error("Too few Monte Carlo cycle values were provided. ",
+                "For gradient descent variation, ",
+                "provide at least one lowest number of Monte Carlo cycles to be considered during gradient descent ",
+                "and one highest number of Monte Carlo cycles to be considered at the final variational point.")
+        end
         if δv ≤ 0.0
             error("Provide a positive value for the gradient descent step size δv.")
         end
         if δg ≤ 0.0
             error("Provide a positive value for the gradient descent convergence threshold δg.")
-        end
-        if U > 1 || V > 1
-            error("Too many values for α or β were provided. ",
-                "For gradient descent variation, provide only one initial value for each parameter.")
         end
     end
 
@@ -134,44 +153,21 @@ function find_VMC_energy(trap::QuantumTrap, cycles::Vector{Int64}=[1_000000];
 
     # VARIABLES:
 
+    M::Int64 = round(C/T) # is the number of samples to be taken in total per thread.
+
     α::Float64 = αs[1]
         # is the current variational trial state parameter α, as well as the final optimal value for α to be returned.
     β::Float64 = βs[1]
         # is the current variational trial state parameter β, as well as the final optimal value for β to be returned.
-    c::Int64 = 0 # is the number of Monte Carlo cycles run at the current variational point.
-
-    R::Vector{Vector{Float64}} = [zeros(D) for i in 1:N] # is the current configuration of the trap particles.
-    ΔR::Matrix{Float64} = zeros(N,N) # is a matrix which stores all current and proposed inter-particle distances.
-    Δr = Symmetric(ΔR)
-        # are the current inter-particle distances, stored in the upper triangle of ΔR but accessed symmetrically.
-
-    s::Matrix{Vector{Float64}} = [zeros(D) for i in 1:N,j in 1:N]
-        # is a matrix which stores all current values of the vector quantities q and s as defined in the report.
-    q = view(s,diagind(s)) # are the current values of q, stored along the diagonal of the matrix s.
-
-    proposed_i::Int64 = 0 # is the particle index of the randomly chosen particle to move at each Monte Carlo cycle.
-    δr::Vector{Float64} = zeros(D)
-        # is a randomly drawn position step for the particle to move using the given sampling method.
-    proposed_ri::Vector{Float64} = zeros(D) # is the proposed new position for the particle to move.
-    proposed_Δri = view(ΔR,:,1)
-        # are the proposed new inter-particle distances by making the move, stored in the first column of ΔR.
-
-    if sampling == "quantum drift"
-        current_Qi::Vector{Float64} = zeros(D)
-            # is the current quantum drift for the particle to move.
-        proposed_Qi::Vector{Float64} = zeros(D)
-            # is the quantum drift at the proposed new position for the particle to move.
-    end
-
-    rejected_moves::Int64 = 0
-        # is the number of rejected moves at the current variational point because of random Metropolis acceptance.
-    acceptance::Int64 = 0
-        # is the total percentage of Metropolis accepted moves at the current variational point.
 
     ε::Vector{Float64} = zeros(C)
         # are the sampled local energies from each Monte Carlo cycle at the current variational point.
     ε²::Vector{Float64} = zeros(C)
         # are the sampled local energy squares from each Monte Carlo cycle at the current variational point.
+
+    E::Float64 = 0.0 # is the calculated energy at the current variational point.
+    ΔE²::Float64 = 0.0 # is the estimated statistical variance of the energy at the current variational point.
+    ΔE::Float64 = 0.0 # is the estimated statistical error for the energy at the current variational point.
 
     if variation == "gradient descent"
         ∂lnΨ∂α::Vector{Float64} = zeros(C)
@@ -189,16 +185,15 @@ function find_VMC_energy(trap::QuantumTrap, cycles::Vector{Int64}=[1_000000];
             # are the calculated variational derivatives at the current variational point.
     end
 
+    rejected_moves::Vector{Int64} = zeros(T)
+        # are the numbers of rejected moves at the current variational point because of random Metropolis acceptance.
+    acceptance::Int64 = 0
+        # is the total percentage of Metropolis accepted moves at the current variational point.
+
     optimal_E::Float64 = NaN # is the currently optimal energy (used to store samples for block resampling).
     optimal_ε::Vector{Float64} = zeros(C)
         # are the sampled local energies from each Monte Carlo cycle at the currently optimal variational point
         # (used for block resampling).
-
-    E::Float64 = 0.0 # is the calculated energy at the current variational point,
-        # as well as the final VMC ground state energy of the quantum trap.
-    ΔE²::Float64 = 0.0 # is the estimated statistical variance of the energy at the current variational point.
-    ΔE::Float64 = 0.0 # is the estimated statistical error for the energy at the current variational point,
-        # as well as the final statistical error of the VMC ground state energy of the quantum trap.
 
     Es = zeros(U,V,W) # is the matrix of calculated energies at each variational point,
         # as well as the final vector of calculated VMC energies to be returned.
@@ -209,71 +204,11 @@ function find_VMC_energy(trap::QuantumTrap, cycles::Vector{Int64}=[1_000000];
         plout = plot() # is the plot to be displayed.
     end
 
+
     # FUNCTIONS:
 
-    function _q(r::Vector{Float64})::Vector{Float64}
-        tmp = zeros(D)
-        @inbounds for d in 1:D
-            if d < 3
-                tmp[d] = r[d]
-            else
-                tmp[d] = β*r[d]
-            end
-        end
-        return -4α*tmp
-    end
-    _d(Δr::Float64)::Float64 = Δr^2*(Δr-a)
-    _s(Δr::Vector{Float64})::Vector{Float64} = a*Δr/(2*_d(norm(Δr)))
-        # are the quantities defined in the report and used to calculate the quantum drift and the local energy.
-
-    if sampling == "quantum drift"
-        function _Q(i::Int64,ri::Vector{Float64})::Vector{Float64}
-            # calculates the quantum drift for particle i at the proposed position ri with the current configuration.
-            Qi = _q(ri)
-            if N > 1 && a > 0.0
-                @inbounds for j in 1:N
-                    if j == i
-                        continue
-                    end
-                    Qi += 4*_s(ri-R[j])
-                end
-            end
-            return Qi
-        end
-
-        function _Q(i::Int64)::Vector{Float64}
-            # calculates the quantum drift for particle i with the current configuration.
-            @inbounds Qi = q[i]
-            if N > 1 && a > 0.0
-                @inbounds for j in 1:N
-                    if j == i
-                        continue
-                    end
-                    Qi += 4*s[j,i]
-                end
-            end
-            return Qi
-        end
-    end
-
-    function plot_particles() # plots the trap particles in a scatter plot.
-        @inbounds X = [r[1] for r in R]
-        @inbounds Y = (D > 1 ? [r[2] for r in R] : zeros(N))
-        @inbounds Z = (D > 2 ? [r[3] for r in R] : zeros(N))
-        if plot_output == "configurations"
-            plout = plot(title="Particles in "*short_system_description(trap)*"<br>("*system_parameters(trap)*")",
-                legend=:bottomright)
-            scatter!(plout,X,Y,Z;color="#4aa888",label="initial configuration")
-        else
-            scatter!(plout,X,Y,Z;color="#aa4888",label="final configuration")
-        end
-        return
-    end
-
-    function reset_variables!()
-        # resets all relevant variables for the next Monte Carlo simulation.
-        c = 0
-        rejected_moves = 0
+    function flush_samples!()
+        # flushes all sample vectors for the next Monte Carlo simulation.
         ε = zeros(C)
         ε² = zeros(C)
         if variation == "gradient descent"
@@ -284,259 +219,415 @@ function find_VMC_energy(trap::QuantumTrap, cycles::Vector{Int64}=[1_000000];
                 ∂lnΨ∂βε = zeros(C)
             end
         end
+        rejected_moves = zeros(T)
     end
 
-    function scatter_particles!()
-        # scatters the trap particles into an initial configuration based on the given method.
-        if scattering == "normal"
-            # scatters the trap particles into a normal distribution around the origin with deviation 1/√2.
-            placing = true
-            dbn = Normal()
-            @inbounds for i in 1:N
-                placing = true
-                while placing
-                    R[i] = rand(dbn,D)/√2
-                    placing = false
+    function find_energy!(u::Int64=0,v::Int64=0)
+        # runs a Monte Carlo simulation at the current variational point and stores the results in Es[u,v] and ΔEs[u,v]
+        # (if not currently gradient descending, for which u and v is zero and no values are stored).
+
+        # FUNCTIONS:
+
+        function sample_energies!(t::Int64)
+            # sets up a quantum trap on thread t and takes M samples of the relevant quantities,
+            # storing them at the indices between (t-1)*M and t*M in the sample vectors.
+
+            # VARIABLES:
+
+            m::Int64 = 0 # is the number of samples currently taken by this thread.
+
+            R::Vector{Vector{Float64}} = [zeros(D) for i in 1:N] # is the current configuration of the trap particles.
+            ΔR::Matrix{Float64} = zeros(N,N) # is a matrix which stores all current and proposed inter-particle distances.
+            Δr = Symmetric(ΔR)
+                # are the current inter-particle distances, stored in the upper triangle of ΔR but accessed symmetrically.
+
+            s::Matrix{Vector{Float64}} = [zeros(D) for i in 1:N,j in 1:N]
+                # is a matrix which stores all current values of the vector quantities q and s as defined in the report.
+            q = view(s,diagind(s)) # are the current values of q, stored along the diagonal of the matrix s.
+
+            proposed_i::Int64 = 0 # is the particle index of the randomly chosen particle to move at each Monte Carlo cycle.
+            δr::Vector{Float64} = zeros(D)
+                # is a randomly drawn position step for the particle to move using the given sampling method.
+            proposed_ri::Vector{Float64} = zeros(D) # is the proposed new position for the particle to move.
+            proposed_Δri = view(ΔR,:,1)
+                # are the proposed new inter-particle distances by making the move, stored in the first column of ΔR.
+
+            if sampling == "quantum drift"
+                current_Qi::Vector{Float64} = zeros(D)
+                    # is the current quantum drift for the particle to move.
+                proposed_Qi::Vector{Float64} = zeros(D)
+                    # is the quantum drift at the proposed new position for the particle to move.
+            end
+
+
+            # FUNCTIONS:
+
+            function _q(r::Vector{Float64})::Vector{Float64}
+                tmp = zeros(D)
+                @inbounds for d in 1:D
+                    if d < 3
+                        tmp[d] = r[d]
+                    else
+                        tmp[d] = β*r[d]
+                    end
+                end
+                return -4α*tmp
+            end
+            _d(Δr::Float64)::Float64 = Δr^2*(Δr-a)
+            _s(Δr::Vector{Float64})::Vector{Float64} = a*Δr/(2*_d(norm(Δr)))
+                # are the quantities defined in the report and used to calculate the quantum drift and the local energy.
+
+            if sampling == "quantum drift"
+                function _Q(i::Int64,ri::Vector{Float64})::Vector{Float64}
+                    # calculates the quantum drift for particle i at the proposed position ri with the current configuration.
+                    Qi = _q(ri)
                     if N > 1 && a > 0.0
-                        for j in 1:(i-1)
-                            ΔR[j,i] = norm(R[i]-R[j]) # calculates and stores the initial values of Δr.
-                            if Δr[j,i] ≤ a # replaces the particle if it overlaps with one already placed.
-                                placing = true
-                                break
-                            else # calculates and stores the initial values of s if the particle does not overlap.
+                        @inbounds for j in 1:N
+                            if j == i
+                                continue
+                            end
+                            Qi += 4*_s(ri-R[j])
+                        end
+                    end
+                    return Qi
+                end
+
+                function _Q(i::Int64)::Vector{Float64}
+                    # calculates the quantum drift for particle i with the current configuration.
+                    @inbounds Qi = q[i]
+                    if N > 1 && a > 0.0
+                        @inbounds for j in 1:N
+                            if j == i
+                                continue
+                            end
+                            Qi += 4*s[j,i]
+                        end
+                    end
+                    return Qi
+                end
+            end
+
+            function plot_particles() # plots the trap particles in a scatter plot.
+                @inbounds X = [r[1] for r in R]
+                @inbounds Y = (D > 1 ? [r[2] for r in R] : zeros(N))
+                @inbounds Z = (D > 2 ? [r[3] for r in R] : zeros(N))
+                if plot_output == "configurations"
+                    plout = plot(title="Particles in "*short_system_description(trap)*"<br>("*system_parameters(trap)*")",
+                        legend=:bottomright)
+                    scatter!(plout,X,Y,Z;color="#4aa888",label="initial configuration")
+                else
+                    scatter!(plout,X,Y,Z;color="#aa4888",label="final configuration")
+                end
+                return
+            end
+
+            function scatter_particles!()
+                # scatters the trap particles into an initial configuration based on the given method.
+                if scattering == "normal"
+                    # scatters the trap particles into a normal distribution around the origin with deviation 1/√2.
+                    placing = true
+                    dbn = Normal()
+                    @inbounds for i in 1:N
+                        placing = true
+                        while placing
+                            R[i] = rand(dbn,D)/√2
+                            placing = false
+                            if N > 1 && a > 0.0
+                                for j in 1:(i-1)
+                                    ΔR[j,i] = norm(R[i]-R[j]) # calculates and stores the initial values of Δr.
+                                    if Δr[j,i] ≤ a # replaces the particle if it overlaps with one already placed.
+                                        placing = true
+                                        break
+                                    else # calculates and stores the initial values of s if the particle does not overlap.
+                                        s[j,i] = _s(R[i]-R[j])
+                                        s[i,j] = -s[j,i]
+                                    end
+                                end
+                            end
+                        end
+                        q[i] = _q(R[i]) # calculates and stores the initial values of q.
+                    end
+                elseif scattering == "lattice" && N > 1
+                    # scatters the trap particles into a centered L×L×L-point square lattice with size √2 in each direction.
+                    L = ceil(Int,N^(1/D))
+                    @inbounds for i in 1:N
+                        for d in 1:D
+                            R[i][d] = (((i-1)%(L^d))÷(L^(d-1))-(L-1)/2)*(√2/(L-1))
+                        end
+                        if N > 1 && a > 0.0
+                            for j in 1:(i-1) # calculates and stores the initial values of Δr and s.
+                                ΔR[j,i] = norm(R[i]-R[j])
                                 s[j,i] = _s(R[i]-R[j])
                                 s[i,j] = -s[j,i]
                             end
                         end
+                        q[i] = _q(R[i]) # calculates and stores the initial values of q.
                     end
                 end
-                q[i] = _q(R[i]) # calculates and stores the initial values of q.
-            end
-        elseif scattering == "lattice" && N > 1
-            # scatters the trap particles into a centered L×L×L-point square lattice with size √2 in each direction.
-            L = ceil(Int,N^(1/D))
-            @inbounds for i in 1:N
-                for d in 1:D
-                    R[i][d] = (((i-1)%(L^d))÷(L^(d-1))-(L-1)/2)*(√2/(L-1))
+                if variation == "range" && t == 1 && plot_output == "configurations"
+                    plot_particles()
+                    plot_output = "configuration"
                 end
-                if N > 1 && a > 0.0
-                    for j in 1:(i-1) # calculates and stores the initial values of Δr and s.
-                        ΔR[j,i] = norm(R[i]-R[j])
-                        s[j,i] = _s(R[i]-R[j])
-                        s[i,j] = -s[j,i]
-                    end
-                end
-                q[i] = _q(R[i]) # calculates and stores the initial values of q.
             end
-        end
-        if plot_output == "configurations"
-            plot_particles()
-            plot_output = "configuration"
-        end
-    end
 
-    function propose_move!()
-        # proposes a move based on the given sampling method.
-        i = rand(1:N)
-        if sampling == "random step"
-            # proposes a uniformly distributed random step with size δs.
-            @inbounds for d in 1:D
-                δr[d] = (2rand()-1)*δs
-            end
-        elseif sampling == "quantum drift"
-            # proposes a move by quantum drift and a normally distributed random step with deviation δs.
-            dbn = Normal()
-            current_Qi = _Q(i)
-            @inbounds for d in 1:D
-                δr[d] = 1/2*current_Qi[d]*δs^2+rand(dbn)*δs
-            end
-        end
-        proposed_i = i
-        @inbounds proposed_ri = R[i]+δr
-    end
-
-    function judge_move!()
-        # judges whether the proposed move is accepted based on the Metropolis acceptance ratio,
-        # and nullifies the move if rejected.
-
-        function acceptance_ratio()::Float64
-            # returns the Metropolis acceptance ratio for the proposed move based on the given sampling method.
-
-            function proposal_ratio()::Float64
-                # returns the ratio of proposal probabilities for the proposed move based on the given sampling method.
+            function propose_move!()
+                # proposes a move based on the given sampling method.
+                i = rand(1:N)
                 if sampling == "random step"
-                    return 1.0
+                    # proposes a uniformly distributed random step with size δs.
+                    @inbounds for d in 1:D
+                        δr[d] = (2rand()-1)*δs
+                    end
                 elseif sampling == "quantum drift"
-                    proposed_Qi = _Q(proposed_i,proposed_ri)
+                    # proposes a move by quantum drift and a normally distributed random step with deviation δs.
+                    dbn = Normal()
+                    current_Qi = _Q(i)
+                    @inbounds for d in 1:D
+                        δr[d] = 1/2*current_Qi[d]*δs^2+rand(dbn)*δs
+                    end
+                end
+                proposed_i = i
+                @inbounds proposed_ri = R[i]+δr
+            end
+
+            function judge_move!()
+                # judges whether the proposed move is accepted based on the Metropolis acceptance ratio,
+                # and nullifies the move if rejected.
+
+                function acceptance_ratio()::Float64
+                    # returns the Metropolis acceptance ratio for the proposed move based on the given sampling method.
+
+                    function proposal_ratio()::Float64
+                        # returns the ratio of proposal probabilities for the proposed move based on the given sampling method.
+                        if sampling == "random step"
+                            return 1.0
+                        elseif sampling == "quantum drift"
+                            proposed_Qi = _Q(proposed_i,proposed_ri)
+                            tmp = 0.0
+                            @inbounds for d in 1:D
+                                tmp += (proposed_Qi[d]+current_Qi[d])*(δr[d]+1/4*(proposed_Qi[d]-current_Qi[d])*δs^2)
+                            end
+                            return exp(-1/2*tmp)
+                        end
+                    end
+
+                    function _g²(r::Vector{Float64})::Float64
+                        tmp = 0.0
+                        @inbounds for d in 1:D
+                            if d < 3
+                                tmp += r[d]^2
+                            else
+                                tmp += β*r[d]^2
+                            end
+                        end
+                        return exp(-2α*tmp)
+                    end
+                    _f²(Δr::Float64)::Float64 = (Δr > a ? (1-a/Δr)^2 : 0.0)
+                        # are the squares of the functions g and f defined in the report.
+
+                    i = proposed_i
+                    ratio = proposal_ratio()
+                    @inbounds ratio *= _g²(proposed_ri)/_g²(R[i])
+                    if N > 1 && a > 0.0
+                        @inbounds for j in 1:N
+                            if j == i
+                                continue
+                            end
+                            proposed_Δri[j] = norm(proposed_ri-R[j])
+                            ratio *= _f²(proposed_Δri[j])/_f²(Δr[j,i])
+                        end
+                    end
+                    return min(1.0,ratio)
+                end
+
+                if rand() > acceptance_ratio()
+                    # rejects the proposed move randomly based on the Metropolis acceptance ratio.
+                    rejected_moves[t] += 1
+                    proposed_i = 0
+                end
+                # accepts the proposed move if the above rejection test fails.
+            end
+
+            function move_particles!()
+                # moves the trap particles based on the proposed move.
+                if proposed_i == 0
+                    # does not move any particle if the proposed move was rejected.
+                    return
+                end
+                i = proposed_i
+                @inbounds R[i] = proposed_ri # updates the position of the particle.
+                @inbounds q[i] = _q(proposed_ri) # calculates and updates the vector trait q of the particle.
+                if N > 1 && a > 0.0
+                    @inbounds for j in 1:N
+                        # calculates and updates the inter-particle distances Δr and the vector traits s related to the particle.
+                        if j == i
+                            continue
+                        elseif j < i
+                            ΔR[j,i] = norm(R[i]-R[j])
+                            s[j,i] = _s(R[i]-R[j])
+                            s[i,j] = -s[j,i]
+                        else
+                            ΔR[i,j] = norm(R[j]-R[i])
+                            s[i,j] = _s(R[j]-R[i])
+                            s[j,i] = -s[i,j]
+                        end
+                    end
+                end
+            end
+
+            function sample_energy!()
+                # samples the local energy, the local energy square as well as the variational derivative quantities
+                # at the new particle configuration.
+
+                function _U(r::Vector{Float64})::Float64
+                    # calculates the elliptical harmonic potential energy for a particle at position r.
                     tmp = 0.0
                     @inbounds for d in 1:D
-                        tmp += (proposed_Qi[d]+current_Qi[d])*(δr[d]+1/4*(proposed_Qi[d]-current_Qi[d])*δs^2)
+                        if d < 3
+                            tmp += r[d]^2
+                        else
+                            tmp += λ^2*r[d]^2
+                        end
                     end
-                    return exp(-1/2*tmp)
+                    return tmp
                 end
-            end
 
-            function _g²(r::Vector{Float64})::Float64
-                tmp = 0.0
-                @inbounds for d in 1:D
-                    if d < 3
-                        tmp += r[d]^2
-                    else
-                        tmp += β*r[d]^2
+                c = (t-1)*M+m # is the global cycle index of the current sample.
+
+                @inbounds if proposed_i == 0 && m > 1
+                    # copies the samples from the last cycle if the proposed move was rejected.
+                    ε[c] = ε[c-1]
+                    ε²[c] = ε²[c-1]
+                    if variation == "gradient descent"
+                        ∂lnΨ∂α[c] = ∂lnΨ∂α[c-1]
+                        ∂lnΨ∂αε[c] = ∂lnΨ∂αε[c-1]
+                        if D == 3
+                            ∂lnΨ∂β[c] = ∂lnΨ∂β[c-1]
+                            ∂lnΨ∂βε[c] = ∂lnΨ∂βε[c-1]
+                        end
                     end
+                    return
                 end
-                return exp(-2α*tmp)
-            end
-            _f²(Δr::Float64)::Float64 = (Δr > a ? (1-a/Δr)^2 : 0.0)
-                # are the squares of the functions g and f defined in the report.
-
-            i = proposed_i
-            ratio = proposal_ratio()
-            @inbounds ratio *= _g²(proposed_ri)/_g²(R[i])
-            if N > 1 && a > 0.0
-                @inbounds for j in 1:N
-                    if j == i
-                        continue
-                    end
-                    proposed_Δri[j] = norm(proposed_ri-R[j])
-                    ratio *= _f²(proposed_Δri[j])/_f²(Δr[j,i])
-                end
-            end
-            return min(1.0,ratio)
-        end
-
-        if rand() > acceptance_ratio()
-            # rejects the proposed move randomly based on the Metropolis acceptance ratio.
-            rejected_moves += 1
-            proposed_i = 0
-        end
-        # accepts the proposed move if the above rejection test fails.
-    end
-
-    function move_particles!()
-        # moves the trap particles based on the proposed move.
-        if proposed_i == 0
-            # does not move any particle if the proposed move was rejected.
-            return
-        end
-        i = proposed_i
-        @inbounds R[i] = proposed_ri # updates the position of the particle.
-        @inbounds q[i] = _q(proposed_ri) # calculates and updates the vector trait q of the particle.
-        if N > 1 && a > 0.0
-            @inbounds for j in 1:N
-                # calculates and updates the inter-particle distances Δr and the vector traits s related to the particle.
-                if j == i
-                    continue
-                elseif j < i
-                    ΔR[j,i] = norm(R[i]-R[j])
-                    s[j,i] = _s(R[i]-R[j])
-                    s[i,j] = -s[j,i]
-                else
-                    ΔR[i,j] = norm(R[j]-R[i])
-                    s[i,j] = _s(R[j]-R[i])
-                    s[j,i] = -s[i,j]
-                end
-            end
-        end
-    end
-
-    function sample_energy!()
-        # samples the local energy, the local energy square
-        # as well as variational derivative quantities at the new particle configuration.
-
-        function _U(r::Vector{Float64})::Float64
-            # calculates the elliptical harmonic potential energy for a particle at position r.
-            tmp = 0.0
-            @inbounds for d in 1:D
-                if d < 3
-                    tmp += r[d]^2
-                else
-                    tmp += λ^2*r[d]^2
-                end
-            end
-            return tmp
-        end
-
-        @inbounds if proposed_i == 0 && c > 1
-            # copies the samples from the last cycle if the proposed move was rejected.
-            ε[c] = ε[c-1]
-            ε²[c] = ε²[c-1]
-            if variation == "gradient descent"
-                ∂lnΨ∂α[c] = ∂lnΨ∂α[c-1]
-                ∂lnΨ∂αε[c] = ∂lnΨ∂αε[c-1]
-                if D == 3
-                    ∂lnΨ∂β[c] = ∂lnΨ∂β[c-1]
-                    ∂lnΨ∂βε[c] = ∂lnΨ∂βε[c-1]
-                end
-            end
-            return
-        end
-        @inbounds ε[c] = α*N*(D+(β-1)*(D==3))
-        @inbounds for i in 1:N
-            ε[c] += 1/2*_U(R[i])
-            for d in 1:D
-                ε[c] -= 1/8*q[i][d]^2
-                if variation == "gradient descent"
-                    if d < 3
-                        ∂lnΨ∂α[c] -= R[i][d]^2
-                    else
-                        ∂lnΨ∂α[c] -= β*R[i][d]^2
-                        ∂lnΨ∂β[c] -= α*R[i][d]^2
-                    end
-                end
-            end
-            if N > 1 && a > 0.0
-                for j in 1:N
-                    if j == i
-                        continue
-                    end
-                    ε[c] -= a*(D-3)/(2*_d(Δr[j,i]))
+                @inbounds ε[c] = α*N*(D+(β-1)*(D==3))
+                @inbounds for i in 1:N
+                    ε[c] += 1/2*_U(R[i])
                     for d in 1:D
-                        ε[c] -= q[i][d]*s[j,i][d]
-                    end
-                    for k in 1:N
-                        if k == i || k == j
-                            continue
+                        ε[c] -= 1/8*q[i][d]^2
+                        if variation == "gradient descent"
+                            if d < 3
+                                ∂lnΨ∂α[c] -= R[i][d]^2
+                            else
+                                ∂lnΨ∂α[c] -= β*R[i][d]^2
+                                ∂lnΨ∂β[c] -= α*R[i][d]^2
+                            end
                         end
-                        for d in 1:D
-                            ε[c] -= 2*s[j,i][d]*s[k,i][d]
+                    end
+                    if N > 1 && a > 0.0
+                        for j in 1:N
+                            if j == i
+                                continue
+                            end
+                            ε[c] -= a*(D-3)/(2*_d(Δr[j,i]))
+                            for d in 1:D
+                                ε[c] -= q[i][d]*s[j,i][d]
+                            end
+                            for k in 1:N
+                                if k == i || k == j
+                                    continue
+                                end
+                                for d in 1:D
+                                    ε[c] -= 2*s[j,i][d]*s[k,i][d]
+                                end
+                            end
                         end
                     end
                 end
+                @inbounds ε²[c] = ε[c]^2
+                if variation == "gradient descent"
+                    @inbounds ∂lnΨ∂αε[c] = ∂lnΨ∂α[c]*ε[c]
+                    if D == 3
+                        @inbounds ∂lnΨ∂βε[c] = ∂lnΨ∂β[c]*ε[c]
+                    end
+                end
             end
-        end
-        @inbounds ε²[c] = ε[c]^2
-        if variation == "gradient descent"
-            @inbounds ∂lnΨ∂αε[c] = ∂lnΨ∂α[c]*ε[c]
-            if D == 3
-                @inbounds ∂lnΨ∂βε[c] = ∂lnΨ∂β[c]*ε[c]
-            end
-        end
-    end
 
-    function calculate_means!()
-        # calculates the energy, the statistical variance and error of the energy
-        # as well as the variational derivatives at the current variational point.
-        E = sum(ε)/c
-        ΔE² = (sum(ε²)/c-E^2)/c
-        if ΔE² < 0
-            if ΔE² > -1e-5
+
+            # EXECUTIONS:
+
+            scatter_particles!()
+            while m < M
+                m += 1
+                propose_move!()
+                judge_move!()
+                move_particles!()
+                sample_energy!()
+            end
+            if variation == "range" && t == 1 && plot_output == "configuration"
+                plot_particles()
+                plot_output = ""
+            end
+        end
+
+        function calculate_means!(c::Int64)
+            # calculates the energy, the statistical variance and error of the energy as well as the variational derivatives
+            # at the current variational point, including samples up to index c.
+            E = sum(ε[1:c])/c
+            ΔE² = (sum(ε²[1:c])/c-E^2)/c
+            if ΔE² < 0 # sets the statistical variance to zero if negative, but prints a warning.
+                println("– Warning: The statistical variance turned out to be negative with value ",ΔE²,"! It was set to zero. –")
                 ΔE² = 0.0
+                ΔE = 0.0
             else
-                error("The statistical variance turned out to be negative with value ",ΔE²,"!")
+                ΔE = √ΔE²
+            end
+            if c == C
+                if isnan(optimal_E) || E < optimal_E
+                    # stores the energy and energy samples as optimal if they are lower than the currently optimal values
+                    # (used for block resampling).
+                    optimal_E = E
+                    optimal_ε = ε
+                end
+            end
+            if variation == "gradient descent"
+                ∂E∂α = 2sum(∂lnΨ∂αε)/c-2sum(∂lnΨ∂α)/c*E
+                if D == 3
+                    ∂E∂β = 2sum(∂lnΨ∂βε)/c-2sum(∂lnΨ∂β)/c*E
+                end
             end
         end
-        ΔE = √ΔE²
-        if isnan(optimal_E) || E < optimal_E
-            # stores the energy and energy samples as optimal if they are lower than the currently optimal values.
-            optimal_E = E
-            optimal_ε = ε[1:c]
+
+
+        # EXECUTIONS:
+
+        if text_output == "full"
+            println()
+            println("Running ",T*M," Monte Carlo cycles at the variational point (",
+            "α = ",round(α;digits=4),(D == 3 ? string(" / β = ",round(β;digits=4)) : ""),") ...")
         end
-        if variation == "gradient descent"
-            ∂E∂α = 2sum(∂lnΨ∂αε)/c-2sum(∂lnΨ∂α)/c*E
-            if D == 3
-                ∂E∂β = 2sum(∂lnΨ∂βε)/c-2sum(∂lnΨ∂β)/c*E
+        flush_samples!()
+        @threads for t in 1:T # sets up T threads to take an equal amount of samples and store them in the sample vectors.
+            sample_energies!(t)
+        end
+        if u > 0 && v > 0 # calculates and stores energy values if indices u and v are specified.
+            @inbounds for w in 1:W
+                calculate_means!(cycles[w])
+                Es[u,v,w] = E
+                ΔEs[u,v,w] = ΔE
             end
+            acceptance = round(Int,100*(1-sum(rejected_moves)/C))
+        elseif u == 0 || v == 0 # calculates energy values and variational derivatives if indices u and v are not specified.
+            calculate_means!(cycles[1])
+            acceptance = round(Int,100*(1-sum(rejected_moves)/cycles[1]))
+        end
+        if acceptance == 0 # prints a warning if the acceptance turned out to be zero.
+            println("– Warning: The acceptance turned out to be zero! –")
+        end
+        if text_output == "full"
+            println(T*M," Monte Carlo cycles finished!")
+            println()
+            println("Acceptance: ",acceptance,"%")
+            println("Energy: ",round(E;digits=4)," ± ",round(ΔE;digits=4))
+            println()
         end
     end
 
@@ -544,7 +635,13 @@ function find_VMC_energy(trap::QuantumTrap, cycles::Vector{Int64}=[1_000000];
         # calculates a better estimate of the statistical error for the final VMC energy through block resampling.
 
         function van(samples::Vector{Float64})::Float64 # calculates the variance of the given samples.
-            return sum(samples.^2)/length(samples)-mean(samples)^2
+            variance = sum(samples.^2)/length(samples)-mean(samples)^2
+            if variance < 0 # sets the sample variance to zero if negative, but prints a warning.
+                println("– Warning: The sample variance turned out to be negative with value ",variance,"! It was set to zero. –")
+                return 0.0
+            else
+                return variance
+            end
         end
 
         function block(samples::Vector{Float64})::Vector{Float64}
@@ -581,49 +678,8 @@ function find_VMC_energy(trap::QuantumTrap, cycles::Vector{Int64}=[1_000000];
                 "<br>("*system_parameters(trap)*")<br>"*
                 "α = "*string(round(α;digits=4))*(D == 3 ? string(" / β = ",round(β;digits=4)) : ""),
                 xlabel="blockings",ylabel="VMC energy error [ħω]")
-            @inbounds plot!(plout,0:b,errors[1:(b+1)];fillrange=zeros(b+1),fillalpha=.5,width=2,color="#fdce0b",alpha=.2,label=false)
-        end
-    end
-
-    function find_energy!(u::Int64=0,v::Int64=0)
-        # runs a Monte Carlo simulation at the current variational point and stores the results in Es[u,v] and ΔEs[u,v]
-        # (if not currently gradient descending).
-        if text_output == "full"
-            println()
-            println("Running ",C," Monte Carlo cycles at the variational point (",
-            "α = ",round(α;digits=4),(D == 3 ? string(" / β = ",round(β;digits=4)) : ""),") ...")
-        end
-        reset_variables!()
-        scatter_particles!()
-        while c < C
-            c += 1
-            propose_move!()
-            judge_move!()
-            move_particles!()
-            sample_energy!()
-            if u > 0 && v > 0
-                @inbounds for w in 1:W
-                    if c == cycles[w]
-                        calculate_means!()
-                        Es[u,v,w] = E
-                        ΔEs[u,v,w] = ΔE
-                    end
-                end
-            end
-        end
-        if u == 0 || v == 0
-            calculate_means!()
-        end
-        acceptance = round(Int,100*(1-rejected_moves/c))
-        if acceptance == 0
-            error("The acceptance turned out to be zero!")
-        end
-        if text_output == "full"
-            println(c," Monte Carlo cycles finished!")
-            println()
-            println("Acceptance: ",acceptance,"%")
-            println("Energy: ",round(E;digits=4)," ± ",round(ΔE;digits=4))
-            println()
+            @inbounds plot!(plout,0:b,errors[1:(b+1)];fillrange=zeros(b+1),fillalpha=.5,
+                width=2,color="#fdce0b",alpha=.2,label=false)
         end
     end
 
@@ -686,22 +742,22 @@ function find_VMC_energy(trap::QuantumTrap, cycles::Vector{Int64}=[1_000000];
         Es = Es[u,v,:]
         ΔEs = ΔEs[u,v,:]
     elseif variation == "gradient descent"
-        C = 10_000
+        M = round(cycles[1]/T) # sets the number of samples to be taken per thread to the minimum during gradient descent.
         find_energy!()
         while ∂E∂α^2 > δg^2 || D == 3 && ∂E∂β^2 > δg^2
-            while ∂E∂α*δv ≥ α # ensures that negative values for α are never considered.
+            while ∂E∂α*δv ≥ α || D == 3 && ∂E∂β*δv ≥ β # ensures that negative values for α (and β) are never considered.
                 ∂E∂α *= 0.5
+                if D == 3
+                    ∂E∂β *= 0.5
+                end
             end
             α -= ∂E∂α*δv
             if D == 3
-                while ∂E∂β*δv ≥ β # ensures that negative values for β are never considered.
-                    ∂E∂β *= 0.5
-                end
                 β -= ∂E∂β*δv
             end
             find_energy!()
         end
-        C = cycles[end]
+        M = round(Int,C/T) # sets the numbers of samples per thread back to maximum at the final variational point.
         variation = "range"
             # switches to range variation so that variational derivatives are not calculated at the final variational point.
         if text_output == "some"
@@ -709,7 +765,6 @@ function find_VMC_energy(trap::QuantumTrap, cycles::Vector{Int64}=[1_000000];
             "α = ",round(α;digits=4),(D == 3 ? string(" / β = ",round(β;digits=4)) : ""),") ...")
         end
         find_energy!(1,1)
-        optimal_ε = ε[1:c]
         Es = Es[1,1,:]
         ΔEs = ΔEs[1,1,:]
     end
@@ -730,9 +785,7 @@ function find_VMC_energy(trap::QuantumTrap, cycles::Vector{Int64}=[1_000000];
         println()
     end
 
-    if plot_output == "configuration"
-        plot_particles()
-    elseif plot_output == "convergence"
+    if plot_output == "convergence"
         if sampling == "random step"
             sampling_colour = "#4aa888"
         elseif sampling == "quantum drift"
@@ -761,6 +814,25 @@ function compare_VMC_sampling(trap::QuantumTrap, cycles::Vector{Int64}=[10^e for
 
     D::Int64 = trap.D # is the dimension of the quantum trap.
 
+    W::Int64 = length(cycles) # is the number of energies to calculate and store in order to compare convergence
+        # of the Monte Carlo sampling methods.
+
+    T::Int64 = nthreads() # is the number of available threads for parallell calculation.
+
+    cycles = [(c-c%T) for c in cycles]
+        # adjusts the numbers of Monte Carlo cycles to be considered at each variational point to match threads.
+    C::Int64 = cycles[end] # is the number of Monte Carlo cycles to be run in total for each sampling method.
+
+
+    # VARIABLES
+
+    Es_RS::Vector{Float64} = zeros(W) # is the vector of calculated energies from random step sampling.
+    ΔEs_RS::Vector{Float64} = zeros(W) # is the vector of statistical error for the calculated energies
+        # from random step sampling.
+    Es_QD::Vector{Float64} = zeros(W) # is the vector of calculated energies from quantum drift sampling.
+    ΔEs_QD::Vector{Float64} = zeros(W) # is the vector of statistical error for the calculated energies
+        # from quantum drift sampling.
+
 
     # EXECUTIONS:
 
@@ -773,10 +845,12 @@ function compare_VMC_sampling(trap::QuantumTrap, cycles::Vector{Int64}=[10^e for
     println("Variational parameters: α = ",round(α;digits=4),(D == 3 ? string(" / β = ",round(β;digits=4)) : ""))
     println()
     println()
-    println("Running ",cycles[end]," Monte Carlo cycles with random step sampling ...")
-    _,_,Es_RS,ΔEs_RS = find_VMC_energy(trap,cycles;αs=[α],βs=[β],sampling="random step",δs=δs,text_output="none")
-    println("Running ",cycles[end]," Monte Carlo cycles with quantum drift sampling ...")
-    _,_,Es_QD,ΔEs_QD = find_VMC_energy(trap,cycles;αs=[α],βs=[β],sampling="quantum drift",δs=δs,text_output="none")
+    println("Running ",C," Monte Carlo cycles with random step sampling ...")
+    RS = @spawn find_VMC_energy(trap,cycles;αs=[α],βs=[β],sampling="random step",δs=δs,text_output="none")
+    println("Running ",C," Monte Carlo cycles with quantum drift sampling ...")
+    QD = @spawn find_VMC_energy(trap,cycles;αs=[α],βs=[β],sampling="quantum drift",δs=δs,text_output="none")
+    _,_,Es_RS,ΔEs_RS = fetch(RS)
+    _,_,Es_QD,ΔEs_QD = fetch(QD)
     println("VMC sampling comparison finished!")
     println()
     E = Es_QD[end]

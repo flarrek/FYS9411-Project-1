@@ -65,7 +65,7 @@ function find_VMC_energy(trap::QuantumTrap, cycles::Vector{Int64}=[10_000,1_0000
     cycles = [(c-c%T) for c in cycles]
         # adjusts the numbers of Monte Carlo cycles to be considered at each variational point to match the number of threads.
     C::Int64 = cycles[end] # is the number of Monte Carlo cycles to be run in total at each variational point.
-    B::Int64 = floor(Int,log2(C))
+    B::Int64 = ceil(Int,log2(C))
         # is the 2-logarithm of the number of Monte Carlo cycles to be run in total at each variational point
         # (used to plot block resampling of statistical error for the final VMC energy.)
 

@@ -321,7 +321,9 @@ end
             ε[c] += 1/2*_U(R[i])
             for d in 1:D
                 ε[c] -= 1/8*q[i][d]^2
-                if variation == "gradient descent"
+            end
+            if variation == "gradient descent"
+                for d in 1:D
                     if d < 3
                         ∂lnΨ∂α[c] -= R[i][d]^2
                     else
@@ -600,11 +602,11 @@ function find_VMC_energy(trap::QuantumTrap, Ms::Vector{Int64}=[10^4,10^6];
         if T > 1
             # if the main thread has access to other threads, sets up all these to run an equal number of Monte Carlo cycles,
             # collects the results and stores them in the sample vectors.
-            for t in 1:T
+            @inbounds for t in 1:T
                 results[t] = @spawnat (t+1) simulate_n_sample(trap,C;α=α,β=β,
                     variation=variation,scattering=scattering,sampling=sampling,δv=δv,δg=δg,δs=δs)
             end
-            for t in 1:T
+            @inbounds for t in 1:T
                 ms = (t-1)*C+1:t*C # are the sample indices at which to store the results.
                 if variation == "gradient descent"
                     ε[ms] , ε²[ms] , rejected_moves[t] , ∂lnΨ∂α[ms] , ∂lnΨ∂αε[ms] , ∂lnΨ∂β[ms] , ∂lnΨ∂βε[ms] = fetch(results[t])

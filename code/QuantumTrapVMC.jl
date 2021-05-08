@@ -834,6 +834,7 @@ function compare_VMC_sampling(trap::QuantumTrap, Ms::Vector{Int64}=[10^e for e i
 
     T::Int64 = nworkers() # is the number of available threads for parallell calculation.
 
+    Ms = sort(Ms) # sorts the vector of sample numbers to be considered.
     Ms = [(m-m%T) for m in Ms] # adjusts the numbers of samples to be considered to match threads.
     M::Int64 = Ms[end] # is the number of samples to be taken in total for each sampling method.
 
@@ -856,13 +857,13 @@ function compare_VMC_sampling(trap::QuantumTrap, Ms::Vector{Int64}=[10^e for e i
     println("Quantum trap parameters: ",system_parameters(trap))
     println("Algorithm methods: Normal scattering / Random step & Quantum drift sampling")
     println("Algorithm parameters: δs = ",round(δs;digits=4))
-    println("Variational parameters: α = ",round(α;digits=4),(D == 3 ? string(" / β = ",round(β;digits=4)) : ""))
+    println("Variational parameters: (α = ",round(α;digits=4),(D == 3 ? string(" / β = ",round(β;digits=4)) : ""),")")
     println()
     println()
     println("Running ",M," Monte Carlo cycles with random step sampling ...")
-    _,_,Es_RS,ΔEs_RS = find_VMC_energy(trap,Ms;αs=[α],βs=[β],sampling="random step",δs=δs,text_output="none")
+    _,_,Es_RS,ΔEs_RS = find_VMC_energy(trap,Ms;αs=[α],βs=[β],variation="range",sampling="random step",δs=δs,text_output="none")
     println("Running ",M," Monte Carlo cycles with quantum drift sampling ...")
-    _,_,Es_QD,ΔEs_QD = find_VMC_energy(trap,Ms;αs=[α],βs=[β],sampling="quantum drift",δs=δs,text_output="none")
+    _,_,Es_QD,ΔEs_QD = find_VMC_energy(trap,Ms;αs=[α],βs=[β],variation="range",sampling="quantum drift",δs=δs,text_output="none")
     println("VMC sampling comparison finished!")
     println()
     E = Es_QD[end]

@@ -631,7 +631,7 @@ function find_VMC_energy(trap::QuantumTrap, Ms::Vector{Int64}=[10^4,10^6];
             end
             acceptance = round(100*(1-sum(rejected_moves)/M))
         elseif u == 0 || v == 0 # calculates energy values and variational derivatives if indices u and v are not specified.
-            calculate_means!(Ms[1])
+            calculate_statistics!(Ms[1])
             acceptance = round(100*(1-sum(rejected_moves)/Ms[1]))
         end
         if acceptance == 0 # prints a warning if the acceptance turned out to be zero.

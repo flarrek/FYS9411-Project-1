@@ -381,10 +381,10 @@ end
 end
 
 
-function find_VMC_energy(trap::QuantumTrap, Ms::Vector{Int64}=[10^4,10^6];
+function find_VMC_energy(trap::QuantumTrap, Ms::Vector{Int64}=[1000N,10^6];
         αs::Vector{Float64}=[0.5], βs::Vector{Float64}=[trap.λ],
         variation::String="gradient descent", scattering="normal", sampling::String="quantum drift",
-        δv::Float64=0.001, δg::Float64=0.01, δs::Float64=√0.4, text_output::String="some", plot_output::String="none")
+        δv::Float64=0.001, δg::Float64=0.1, δs::Float64=√0.4, text_output::String="some", plot_output::String="none")
     # finds the VMC approximate ground state energy of the given quantum trap by varying the parameters α and β
     # using the given method of variation, and taking the given number of samples at each variational point
     # using the given methods of scattering and sampling.

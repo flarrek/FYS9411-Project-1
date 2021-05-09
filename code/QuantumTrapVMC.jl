@@ -641,7 +641,7 @@ function find_VMC_energy(trap::QuantumTrap, Ms::Vector{Int64}=[100*trap.N,10^6];
         end
         flush_threads!()
         if text_output == "full"
-            println(T*M," Monte Carlo cycles finished!")
+            println(T*C," Monte Carlo cycles finished!")
             println()
             println("Acceptance: ",acceptance,"%")
             println("Energy: ",round(E;digits=4)," ± ",round(ΔE;digits=4))
@@ -725,7 +725,8 @@ function find_VMC_energy(trap::QuantumTrap, Ms::Vector{Int64}=[100*trap.N,10^6];
                 (D == 3 ? string(" / β ∈ ",round.(βs;digits=4)) : "" ))),") ...")
         elseif variation == "gradient descent"
             println("Gradient descending from the initial variational point (",
-            "α = ",round(α;digits=4),(D == 3 ? string(" / β = ",round(β;digits=4)) : ""),") ...")
+            "α = ",round(α;digits=4),(D == 3 ? string(" / β = ",round(β;digits=4)) : ""),"),")
+            println("running ",round(Ms[1]/T), " Monte Carlo cycles at each point ...")
         end
     end
 

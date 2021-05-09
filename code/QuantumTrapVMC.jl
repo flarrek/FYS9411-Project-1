@@ -726,7 +726,7 @@ function find_VMC_energy(trap::QuantumTrap, Ms::Vector{Int64}=[100*trap.N,10^6];
         elseif variation == "gradient descent"
             println("Gradient descending from the initial variational point (",
             "α = ",round(α;digits=4),(D == 3 ? string(" / β = ",round(β;digits=4)) : ""),"),")
-            println("running ",round(Ms[1]/T), " Monte Carlo cycles at each point ...")
+            println("running ",Ms[1]," Monte Carlo cycles at each point ...")
         end
     end
 

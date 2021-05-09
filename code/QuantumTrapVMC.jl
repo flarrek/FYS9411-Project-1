@@ -381,7 +381,7 @@ end
 end
 
 
-function find_VMC_energy(trap::QuantumTrap, Ms::Vector{Int64}=[10^4,10^6];
+function find_VMC_energy(trap::QuantumTrap, Ms::Vector{Int64}=[100*trap.N,10^6];
         αs::Vector{Float64}=[0.5], βs::Vector{Float64}=[trap.λ],
         variation::String="gradient descent", scattering="normal", sampling::String="quantum drift",
         δv::Float64=0.001, δg::Float64=0.1, δs::Float64=√0.4, text_output::String="some", plot_output::String="none")

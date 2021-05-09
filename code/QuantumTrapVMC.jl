@@ -381,7 +381,7 @@ end
 end
 
 
-function find_VMC_energy(trap::QuantumTrap, Ms::Vector{Int64}=[1000*trap.N,10^6];
+function find_VMC_energy(trap::QuantumTrap, Ms::Vector{Int64}=[10^4,10^6];
         αs::Vector{Float64}=[0.5], βs::Vector{Float64}=[trap.λ],
         variation::String="gradient descent", scattering="normal", sampling::String="quantum drift",
         δv::Float64=0.001, δg::Float64=0.1, δs::Float64=√0.4, text_output::String="some", plot_output::String="none")
@@ -813,8 +813,8 @@ function find_VMC_energy(trap::QuantumTrap, Ms::Vector{Int64}=[1000*trap.N,10^6]
             "<br>("*system_parameters(trap)*" / δs = "*string(round(δs;digits=4))*")<br>"*
             "α = "*string(round(α;digits=4))*(D == 3 ? string(" / β = ",round(β;digits=4)) : ""),
             legend=:bottomright,xlabel="Monte Carlo cycles",xaxis=:log,ylabel="VMC energy [ħω]")
-        plot!(plout,cycles,Es;ribbon=ΔEs,fillalpha=.5,width=2,color=sampling_colour,label=sampling*" sampling")
-        plot!(plout,cycles,[E for i in 1:W];style=:dash,width=2,color="#fdce0b",label="reference VMC energy")
+        plot!(plout,Ms,Es;ribbon=ΔEs,fillalpha=.5,width=2,color=sampling_colour,label=sampling*" sampling")
+        plot!(plout,Ms,[E for i in 1:W];style=:dash,width=2,color="#fdce0b",label="reference VMC energy")
     end
     if plot_output != "none"
         display(plout)

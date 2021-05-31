@@ -20,7 +20,7 @@
 [
 \maketitle
 \begin{abstract}
-Using the Julia language, the method of Variational Monte Carlo (VMC) was implemented for an elliptical harmonic trap system with $N$ bosons, both with and without interaction. 2 variational parameters were tuned using the gradient descent method to obtain an estimate of the ground state energy for traps with $N = 10$, $N = 50$ and $N = 100$ bosons. The results are benchmarked against \cite{SWL}, which consider the same systems but implemented the VMC method in the C++ language and only varies 1 variational parameter. A comparison of the results from two different Monte Carlo sampling methods, as well as statistical refinement of the results, is presented. Importance sampling using Langevin "quantum drift" sampling is shown to be superior to brute-force "random step" sampling. Finally, the effect of boson interaction is discussed. 
+Using the Julia language, the method of Variational Monte Carlo (VMC) was implemented for an elliptical harmonic trap system with $N$ bosons, both with and without interaction. 2 variational parameters were tuned using the gradient descent method to obtain an estimate of the ground state energy for traps with $N = 10$, $N = 50$ and $N = 100$ bosons. The results are benchmarked against \cite{SWL} and others, which all consider the same systems but implemented the VMC method in the C++ language and only vary 1 variational parameter. A comparison of the results from two different Monte Carlo sampling methods, as well as statistical refinement of the results, is presented. Importance sampling using Langevin "quantum drift" sampling is shown to be superior to brute-force "random step" sampling. Finally, the effect of boson interaction is discussed. 
 \end{abstract}
 ]
 
@@ -266,7 +266,7 @@ for all sample indices $m$ from $1$ to $\frac{M}{2}$. The new sample set is half
 
 
 \section{Results}\label{results}
-|||presentasjon og diskusjon av resultatene, samt sammenligning med \cite{SWL}|||
+|||presentasjon og diskusjon av resultatene, samt sammenligning med \cite{SWL}, \cite{GN}, \cite{HLS}, \cite{IP} og \cite{PJ}|||
 
 
 \section{Conclusion}

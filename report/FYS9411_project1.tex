@@ -3,12 +3,13 @@
 \usepackage{multicol}
 \usepackage{amsmath,amssymb}
 \usepackage{physics}
+\DeclareMathOperator{\mean}{mean}
 \DeclareMathOperator{\van}{van}
 \DeclareMathOperator{\aucov}{aucov}
 
 
 \title{\small FYS9411 – Computational Physics II \\
-\huge Variational Monte Carlo on a Bosonic Quantum Trap}
+\Huge Variational Monte Carlo\\\huge on an Elliptical Harmonic Trap with $N$ Bosons}
 \author{\large Jonas Boym Flaten \\
 \small University of Oslo}
 \date{\today}
@@ -19,27 +20,26 @@
 [
 \maketitle
 \begin{abstract}
-Using the Julia language, the Variational Monte Carlo method was implemented for an elliptical harmonic quantum trap system with and without particle interaction, and 2 variational parameters were tuned using the gradient descent algorithm. A comparison between two different Monte Carlo sampling methods, as well as statistical refinement of the results, is presented. |||noe mer om statistisk analyse||| Importance sampling using Langevin "quantum drift" sampling is shown to be superior to brute-force "random step" sampling. Finally, the effect of particle interaction is examined and discussed. |||noe mer om resultatene||| 
+Using the Julia language, the method of Variational Monte Carlo (VMC) was implemented for an elliptical harmonic trap system with $N$ bosons, both with and without interaction. 2 variational parameters were tuned using the gradient descent method to obtain an estimate of the ground state energy for traps with $N = 10$, $N = 50$ and $N = 100$ bosons. The results are benchmarked against \cite{SWL}, which consider the same systems but implemented the VMC method in the C++ language and only varies 1 variational parameter. A comparison of the results from two different Monte Carlo sampling methods, as well as statistical refinement of the results, is presented. Importance sampling using Langevin "quantum drift" sampling is shown to be superior to brute-force "random step" sampling. Finally, the effect of boson interaction is discussed. 
 \end{abstract}
 ]
 
 \section{Introduction}
+As far as current human knowledge goes, Quantum Mechanics seems to be an excellent model of the universe at the smallest scales. In this "picoscopic" regime our world can be thought to consist of fuzzy elementary particles, spreading diffusely through space but exchanging sharp energy quanta through four fundamental mechanisms. One big caveat however is the rate at which a thorough quantum mechanical analysis becomes impossible to conduct. For anything more than 1 particle, the complexity of the system of differential equations to consider quickly becomes overwhelming. Add several interaction mechanisms at once and you are sure to end up with a problem that nobody on Earth has been able to solve analytically (yet).
 
-As far as current human knowledge goes, Quantum Mechanics seems to be an excellent model of the universe at the smallest scales. In this "picoscopic" regime our world consists of fuzzy elementary particles, spreading diffusely through space but exchanging sharp energy quanta through the four fundamental mechanisms. One big caveat however is the rate at which a thorough quantum mechanical analysis becomes impossible to conduct. For anything more than 1 particle, the complexity of the system of differential equations to consider quickly becomes overwhelming. Add several interaction mechanisms at once and you are sure to end up with a problem that nobody on Earth has been able to solve analytically (yet).
+These difficulties with analytical analysis of quantum many-body systems encourages consideration of statistical and numerical methods. With the 
+currently available computational power in one's own office and the advent of collaborative development of code over the Internet, the field of Computational Physics has emerged as a third alternative to the traditional theoretical and experimental branches of research. Especially within Quantum Mechanics, where the theoreticists face the complexity of coupled differential systems as discussed above while the experimentalists deal with the frailty (and cost) of experiments tuned to the extreme parameters of the quantum world, computational research is in many cases better suited to the task. Through numerical simulations founded on statistical methods and analysis, large quantum mechanical systems can be explored with remarkable precision.
 
-The difficulties with analytical analysis of quantum many-particle systems encourages consideration of statistical and numerical methods. With the 
-currently available computational power in one's own office and the advent of collaborative development of code over the internet, the field of Computational Physics has emerged as a third alternative to the traditional theoretical and experimental branches of research on physics. Especially within Quantum Mechanics, where the theoreticists face the complexity of coupled differential systems as discussed above while the experimentalists deal with the frailty (and cost) of experiments tuned to the extreme parameters of the quantum world, computational research is well-suited to the task. Through numerical simulations founded on statistical methods and analysis, large quantum mechanical systems can be explored with excellent precision.
+In this report, the computational method of Variational Monte Carlo (VMC) on an elliptical harmonic trap system containing $N$ bosons is considered, and its implementation in Julia and subsequent results are reported and benchmarked against the previous work of \cite{SWL} on the same system. The system is itself interesting because ---noe om bosonisk samfall, noen referanser til forskning på systemet? --. 
 
-In this text, the computational method of Variational Monte Carlo on an elliptical harmonic quantum trap system is considered, and its implementation in Julia and subsequent results are reported. The sections \ref{model} and \ref{theory} provide the concrete model in consideration and the principles leading up to the method. In section \ref{method} the actual implementation as well as the scientific approach to the problem is described. Finally in section \ref{results} the results are presented, discussed and compared to similar work.
-
-|||noen referanser og aktualisering av det fysiske systemet kanskje?|||
+Sections \ref{model} and \ref{theory} provide the concrete mathematical model for the system in consideration and the principles leading up to the VMC method. In section \ref{method} the actual Julia implementation as well as the scientific approach to the problem is described. Finally in section \ref{results} the results are presented, discussed and compared to the results of \cite{SWL}.
 
 
 \section{Model} \label{model}
 
-\subsection{Quantum system} \label{system}
-The quantum system in consideration is a $D$-dimensional quantum trap with an arbitrary number of identical particles $N$. In the position basis, the Hamiltonian is
-\begin{equation}
+\subsection{Quantum system}\label{system}
+The quantum system considered here is a $D$-dimensional quantum trap with an arbitrary number of identical bosons $N$. In position basis the system Hamiltonian is
+\begin{equation}\label{dimHam}
 H[\vec{R}] = \sum\limits_i^N \left(U[\vec{r}_i] -\frac{\hbar^2}{2m}\nabla_i^2 \right) + \sum\limits_i^N\sum\limits_{j > i}^N V[\vec{r}_i,\vec{r}_j]
 \end{equation}
 with
@@ -48,232 +48,228 @@ U[\vec{r}_i] &= \frac{m\omega^2}{2}\left(x_i^2+y_i^2+\lambda^2z_i^2\right), \\
 V[\vec{r}_i,\vec{r}_j] &= V[\Delta{r}_{ij}] =\begin{cases} \infty & \text{for $\Delta{r}_{ij} \leq a$} \\
 0 & \text{for $\Delta{r}_{ij} > a$} \end{cases}.
 \end{align}
-In other words $U$ is an elliptical harmonic oscillator potential, and $V$ describes a hard-sphere interaction between the particles. In the equations above as well as the rest of this text, $\vec{r}_i$ and $\vec{\nabla}_i$ are the position and spatial derivative of each particle (indexed by $i$). Furthermore $\Delta\vec{r}_{ij} = \vec{r}_i-\vec{r}_j$ is the distance vector between the particles $i$ and $j$. Finally $\vec{R}$ is the configuration vector of the system as a whole (containing all the particle positions $\vec{r}_i$).
+In other words $U$ is an elliptical harmonic oscillator potential, and $V$ describes a hard-sphere interaction between the bosons. In the equations above as well as the rest of this text, $\vec{r}_i$ and $\vec{\nabla}_i$ are the position and spatial derivative of the boson indexed by $i$. Furthermore $\Delta\vec{r}_{ij} = \vec{r}_i-\vec{r}_j$ is the distance vector between the bosons $i$ and $j$. Finally $\vec{R}$ is the configuration vector of the system as a whole (containing all the bosonic positions $\vec{r}_i$).
 
-The parameters of the model are the mass of the particles $m$, the characteristic radius of the particles $a$ and the trap strength $\omega$, as well as the elliptic parameter $\lambda$ (which potentially makes the trap elliptical in the z-direction). However the variables of the system can be made dimensionless by introducing $\sqrt{\frac{\hbar}{m\omega}}$ as length unit and $\hbar\omega$ as energy unit by splitting
+The parameters of the model are the mass $m$ and characteristic radius $a$ of the bosons, the trap strength $\omega$, as well as the elliptic parameter $\lambda$ (which potentially makes the trap elliptical in the z-direction). However the variables of the system can be made dimensionless by introducing $\sqrt{\frac{\hbar}{m\omega}}$ as length unit and $\hbar\omega$ as energy unit by splitting
 \begin{align}
 &\vec{r}_i = \sqrt{\frac{\hbar}{m\omega}}\vec{r'}_i, \quad &\vec{\nabla}_i = \sqrt{\frac{m\omega}{\hbar}}\vec{\nabla'}_i, \nonumber\\
 &H = \hbar\omega H', \quad\quad &a = \sqrt{\frac{\hbar}{m\omega}}a'. \nonumber
 \end{align}
-The primed variables $\vec{r'}_i$, $\vec{\nabla'}_i$, $H'$ and $a'$, are now dimensionless and give the relative size to the corresponding unit. The primed Hamiltonian takes the form
-\begin{equation}
-H[\vec{R'}] = \sum\limits_i^N \frac{1}{2}\left( U'[\vec{r'}_i] - {\nabla'}_i^2\right) + \sum\limits_i^N\sum\limits_{j > i}^N V'[\Delta{r'}_{ij}] \label{Hamiltonian}
+The primed variables $\vec{r'}_i$, $\vec{\nabla'}_i$, $H'$ and $a'$, are now dimensionless and give the relative size to the corresponding unit. Omitting the primes, the Hamiltonian \eqref{dimHam} takes the form
+\begin{equation}\label{Ham}
+H[\vec{R}] = \sum\limits_i^N \frac{1}{2}\left( U[\vec{r}_i] - {\nabla}_i^2\right) + \sum\limits_i^N\sum\limits_{j > i}^N V'[\Delta{r}_{ij}]
 \end{equation}
 with
 \begin{align}
-U'[\vec{r'}_i] &= x_i^2+y_i^2+\lambda^2z_i^2, \label{U}\\
-V'[\Delta{r'}_{ij}] &=\begin{cases} \infty & \text{for $\Delta{r'}_{ij} \leq a'$} \\
-0 & \text{for $\Delta{r'}_{ij} > a'$} \end{cases}. \label{V}
+U[\vec{r}_i] &= x_i^2+y_i^2+\lambda^2z_i^2, \label{U}\\
+V[\Delta{r}_{ij}] &=\begin{cases} \infty & \text{for $\Delta{r}_{ij} \leq a$} \\
+0 & \text{for $\Delta{r}_{ij} > a$} \end{cases}. \label{V}
 \end{align}
+In the rest of this report, dimensionless variables and equations are considered.
 
-In the rest of this text, we omit the primes and consider these dimensionless variables and equations.
 
-\subsection{Trial state} \label{trialstate}
-
-The trap particles are assumed to be bosons, and the variational trial state in consideration has the form in position basis
-\begin{equation}
-\Psi[\vec{R}] = \prod\limits_i^N g[\vec{r}_i] \prod\limits_j^N\prod\limits_{k > j}^N f[\vec{r}_j,\vec{r}_k] \label{trialstate}
+\subsection{Trial state}
+The variational method discussed in chapter \ref{theory} requires a trial state. The bosonic trial state in consideration has the position basis form
+\begin{equation}\label{trialstate}
+\Psi[\vec{R}] = \prod\limits_i^N g[\vec{r}_i] \prod\limits_j^N\prod\limits_{k > j}^N f[\vec{r}_j,\vec{r}_k]
 \end{equation}
 with
 \begin{align}
 g[\vec{r}_i] &= \epsilon^{-\alpha\left(x_i^2+y_i^2+ \beta z_i^2\right)}, \label{g}\\
 f[\vec{r}_i,\vec{r}_j] &= f[\Delta{r}_{ij}] = \begin{cases} 0 & \text{for $\Delta{r}_{ij} \leq a$} \\
-1-\frac{a}{\Delta{r}_{ij}} & \text{for $\Delta{r}_{ij} > a$} \end{cases}. \label{f}
+1-\frac{a}{\Delta{r}_{ij}} & \text{for $\Delta{r}_{ij} > a$} \end{cases}, \label{f}
 \end{align}
-Here $\alpha$ and $\beta$ are the variational parameters to tune when chasing the ground state energy.
+Here $\epsilon$ is Euler's number and $a$ is the characteristic boson radius introduced in section \ref{model}, while $\alpha$ and $\beta$ are the variational parameters to tune when chasing the ground state energy.
 
 
-\section{Theory} \label{theory}
+\section{Theory}\label{theory}
 
 \subsection{The variational method} \label{varmethod}
-The variational principle of Quantum Mechanics states that the ground state $E_G$ of any quantum system with Hamiltonian operator $\mathbf{H}$ is bounded from above by
-\begin{equation}
-E_G \leq \frac{\ev{\mathbf{H}}{\Psi}}{\braket{\Psi}{\Psi}} \label{varprinciple}
+The Variational Principle of Quantum Mechanics states that the ground state $E_\text{G}$ of any quantum system with Hamiltonian operator $\mathbf{H}$ is bounded from above by
+\begin{equation}\label{VP}
+E_\text{G} \leq \frac{\ev{\mathbf{H}}{\Psi}}{\braket{\Psi}{\Psi}}
 \end{equation}
-for any state $\ket{\Psi}$, and the variational method is based on finding a suitable trial state which minimizes the bound $\frac{\ev{\mathbf{H}}{\Psi}}{\braket{\Psi}{\Psi}}$.
-
-For $N$ particles in $D$ dimensions the bound takes the form
+for any state $\ket{\Psi}$, and the variational method is based on finding a suitable trial state which minimises the bound $\frac{\ev{\mathbf{H}}{\Psi}}{\braket{\Psi}{\Psi}}$ in order to get an approximation to $E_\text{G}$. For $N$ particles in $D$ dimensions the bound takes the form
 \begin{align}
 \frac{\ev{\mathbf{H}}{\Psi}}{\braket{\Psi}{\Psi}} = \frac{\idotsint \Psi^*[\vec{R}]H[\vec{R}]\Psi[\vec{R}]\delta^{DN}R}{\idotsint \abs{\Psi[\vec{R}]}^2\delta^{DN}R} \nonumber
 \end{align}
-in position basis. Introducing now a quantity known as the local energy $\varepsilon$ as
-\begin{equation}
-\varepsilon[\vec{R}] = \frac{H[\vec{R}]\Psi[\vec{R}]}{\Psi[\vec{R}]}, \label{defLocalenergy}
+in position basis. Introducing now a quantity known as the \textit{local energy} $\varepsilon$ as
+\begin{equation}\label{localenergy}
+\varepsilon[\vec{R}] = \frac{H[\vec{R}]\Psi[\vec{R}]}{\Psi[\vec{R}]},
 \end{equation}
 the bound can be rewritten to
 \begin{equation}
 \frac{\ev{\mathbf{H}}{\Psi}}{\braket{\Psi}{\Psi}} = \idotsint \Pi[\vec{R}]\varepsilon[\vec{R}] \delta^{DN}R, \nonumber
 \end{equation}
 where
-\begin{equation}
-\Pi[\vec{R}] = \frac{\abs{\Psi[\vec{R}]}^2}{\idotsint \abs{\Psi[\vec{R}]}^2\delta^{DN}R} \label{distribution}
+\begin{equation}\label{distribution}
+\Pi[\vec{R}] = \frac{\abs{\Psi[\vec{R}]}^2}{\idotsint \abs{\Psi[\vec{R}]}^2\delta^{DN}R} 
 \end{equation}
-is a probability distribution over the configuration space spanned by $\vec{R}$. But then the variational principle can be recast as
+is the spatial probability distribution over the configuration space spanned by $\vec{R}$. But then the Variational Principle \eqref{VP} can be recast as
 \begin{equation}
-E_G \leq \ev{\varepsilon}_\Pi,
+E_\text{G} \leq \ev{\varepsilon}_\Pi,
 \end{equation}
-and so the variational method becomes a matter of estimating the expected local energy, because this expected value provides an energy bound for the ground state of the system. At this probabilistic reinterpretation of the variational method, a Monte Carlo simulation enters the picture.
+and so the variational method becomes a matter of estimating the expected local energy, because this expected value provides an energy bound for the ground state of the system. At this probabilistic reinterpretation of the Variational Principle, a \textit{Monte Carlo simulation} enters the picture.
 
-Monte Carlo simulations in general are based on drawing a series of random samples from some relevant probability distribution and using statistics to harvest the desired results about the system in consideration. In the case of Variational Monte Carlo, the samples to draw are the local energies $\varepsilon$ and the relevant distribution is the trial state distribution $\Pi$ defined above. In appendix \ref{localenergy} the derivatives of the trial wavefunction $\Psi$ as defined in \eqref{trialstate} are calculated to find an analytical expression for the local energy $\varepsilon$ using its definition \eqref{defLocalenergy}. But even though the sample function $\varepsilon$ is known and the trial wavefunction $\Psi$ itself is defined, its corresponding distribution $\Pi$ involves a $DN$-dimensional integral which quickly becomes impossible to calculate both analytically and numerically.
+Monte Carlo simulations in general are based on drawing a series of random samples from some relevant probability distribution and using statistics to harvest desired results about the system in consideration. In the case of \textit{Variational Monte Carlo} (or VMC), the samples to draw are the local energies $\varepsilon$ and the relevant distribution is the spatial distribution $\Pi$, defined in equations \eqref{localenergy} and \eqref{distribution} above. For this report these quantities are defined with respect to the Hamiltonian $H$ and the trial wavefunction $\Psi$ declared in \eqref{Ham} and \eqref{trialstate}, and in appendix \ref{derLocalenergy} the required derivatives of $\Psi$ are calculated to find an analytical expression for the local energy $\varepsilon$. But even though the sample function $\varepsilon$ is known and the trial wavefunction $\Psi$ itself is defined, its corresponding distribution $\Pi$ involves a $DN$-dimensional integral which quickly becomes impossible to calculate both analytically and numerically.
 
 
-\subsection{The Metropolis algorithm} \label{Metropolis}
-The Metropolis algorithm is an algorithm which makes it possible to sample from a just some probability distribution with an unknown constant, and hence is perfectly suited for Variational Monte Carlo. The algorithm is based on constructing an ergodic Markov chain with $\Pi$ as its stationary distribution and letting this Markov chain run from some initial configuration, sampling the local energy $\varepsilon$ along the way. The longer the Markov chain is allowed to run, the more of the distribution $\Pi$ is fleshed out, and the better the resulting mean value of $\varepsilon$ matches the actual expected value of $\varepsilon$. This follows from the central limit theorem, which indeed states that for $C$ Monte Carlo cycles (where one cycle is one step in the Markov chain), the expected value of $\varepsilon$ is approximated by the sample mean, hereafter denoted as $E$:
-\begin{equation}
-\ev{\varepsilon}_\Pi \approx E = \frac{1}{C}\sum\limits_{c = 1}^C \varepsilon[\vec{R}_c]. \label{mean}
+\subsection{The Metropolis algorithm}\label{Metropolis}
+The \textit{Metropolis algorithm} is an algorithm which makes it possible to sample from just some probability distribution with an unknown constant, and hence it is perfectly suited for Variational Monte Carlo. In terms of this report, the algorithm is based on constructing an ergodic Markov chain with $\Pi$ as its stationary distribution and letting this Markov chain run from some initial configuration, sampling the local energy $\varepsilon$ along the way. The longer the Markov chain is allowed to run, the more of the distribution $\Pi$ is fleshed out, and the better the resulting mean value of $\varepsilon$ matches its actual expected value $\ev{\varepsilon}_\Pi$. This follows from the \textit{Central Limit Theorem}, which indeed states that for $M$ Monte Carlo cycles (where one cycle is one step in the Markov chain), the expected value of $\varepsilon$ is approximated by the sample mean, hereafter denoted simply as the \textit{VMC energy} $E_\text{VMC}$:
+\begin{equation}\label{estimate}
+\ev{\varepsilon}_\Pi \approx \mean\varepsilon = \frac{1}{M}\sum\limits_{m = 1}^M \varepsilon[\vec{R}_m] \equiv E_\text{VMC}.
 \end{equation}
 The statistical error of this approximation is given by the same theorem to be
-\begin{equation} 
-\Delta E = \sqrt{\frac{1}{C} \van[\varepsilon]} = \sqrt{\frac{1}{C}\left(\frac{1}{C}\sum\limits_{c = 1}^C \varepsilon^2[\vec{R}_c] - E^2\right)}, \label{error}
-\end{equation}
-where $\van\varepsilon$ is the sample variance. In these equations, $c$ is an index of each cycle and $\vec{R}_c$ is the configuration at that cycle.
+\begin{align}
+\Delta E_\text{VMC} &= \sqrt{\frac{1}{M} \van\varepsilon} \nonumber\\
+&= \sqrt{\frac{1}{M}\left(\frac{1}{M}\sum\limits_{m = 1}^C \varepsilon^2[\vec{R}_m] - E^2_\text{VMC}\right)}, \label{error}
+\end{align}
+where $\van\varepsilon$ is the sample variance. In these equations, $m$ is an index of each sample and $\vec{R}_m$ is the configuration at that cycle.
 
-The Metropolis Markov chain is constructed from two transition probabilities: the proposal distribution $P[\vec{R}'|\vec{R}]$, which gives the probability of proposing a move to some configuration $\vec{R}'$ when the last sample was drawn at $\vec{R}$, and the acceptance probability $A[\vec{R}'|\vec{R}]$ which gives the probability of accepting this same proposed move. Note that while both $P$ and $A$ must take values between $0$ and $1$, $P$ must be a proper probability distribution in the sense that for all $\vec{R}$,
-\begin{equation}
-\sum\limits_j P[\vec{R}'|\vec{R}] = 1,
+The Metropolis Markov chain is constructed from two transition probabilities: the proposal distribution $P[\vec{R}'|\vec{R}]$, which gives the probability of proposing a move to some new configuration $\vec{R}'$ when the previous sample was drawn at $\vec{R}$, and the acceptance probability $A[\vec{R}'|\vec{R}]$ which gives the probability of actually accepting this same proposed move. Note that while both $P$ and $A$ must take values between $0$ and $1$, $P$ must be a proper probability distribution in the sense that for all $\vec{R}$
+\begin{equation}\label{propdistcint}
+\sum\limits_{\vec{R}'} P[\vec{R}'|\vec{R}] = 1,
 \end{equation}
 while $A$ is only some probability function. The Markov matrix then has the transition rates
 \begin{align}
 &M[\vec{R}'|\vec{R}] = \nonumber\\
-&A[\vec{R}'|\vec{R}]P[\vec{R}'|\vec{R}] + \delta_{ji}\sum\limits_{\vec{R}''} (1-A[\vec{R}''|\vec{R}])P[\vec{R}''|\vec{R}],
+&A[\vec{R}'|\vec{R}]P[\vec{R}'|\vec{R}] + \delta_{\vec{R}'\vec{R}}\sum\limits_{\vec{R}''} \left(1-A[\vec{R}''|\vec{R}]\right)P[\vec{R}''|\vec{R}]
 \end{align}
-and by letting this matrix act on the target distribution $\Pi[\vec{R}]$ and requiring it to stay the same, the so-called "balance criterion" 
-\begin{align}
+where $\delta$ is Kronecker's delta, and by letting this matrix act on the target distribution $\Pi[\vec{R}]$ and requiring it to stay the same, the so-called \textit{balance criterion} 
+\begin{align}\label{balance}
 &\sum\limits_{\vec{R}'} A[\vec{R}'|\vec{R}]P[\vec{R}'|\vec{R}]\Pi[\vec{R}] \nonumber\\
-&\qquad = \sum\limits_{\vec{R}'} A[\vec{R}|\vec{R}']P[\vec{R}|\vec{R}']\Pi[\vec{R}']  \label{balance}
+&\qquad = \sum\limits_{\vec{R}'} A[\vec{R}|\vec{R}']P[\vec{R}|\vec{R}']\Pi[\vec{R}']  
 \end{align}
-follows. If the Markov chain is further required to be ergodic, so that it is ensured to sample from all possible configurations given enough time, then the balance criterion turns into the "detailed balance criterion", in which the sums in \eqref{balance} are removed. Rewriting the detailed balance criterion, the following constraint is put on the acceptance rate $A$:
-\begin{equation}
+follows. If the Markov chain is further required to be ergodic, so that it is ensured to sample from all possible configurations given enough time, then the balance criterion turns into the \textit{detailed balance criterion} in which the sums in \eqref{balance} are removed. Rewriting the detailed balance criterion, the following constraint is put on the acceptance rate $A$:
+\begin{equation}\label{accprobcint}
 \frac{A[\vec{R}'|\vec{R}]}{A[\vec{R}|\vec{R}']} = \frac{P[\vec{R}|\vec{R}']\Pi[\vec{R}']}{P[\vec{R}'|\vec{R}]\Pi[\vec{R}]}.
 \end{equation}
-The simplest choice of $A$ to enforce this constraint is the "Metropolis choice", which is an acceptance probability given by
-\begin{equation}
-A[\vec{R}'|\vec{R}] = \min\left\{1,\frac{P[\vec{R}|\vec{R}']\Pi[\vec{R}']}{P[\vec{R}'|\vec{R}]\Pi[\vec{R}]}\right\}. \label{acc}
+The simplest choice of $A$ to enforce this constraint is the \textit{Metropolis choice}, which is an acceptance probability given by
+\begin{equation}\label{accprob}
+A[\vec{R}'|\vec{R}] = \min\left\{1,\frac{P[\vec{R}|\vec{R}']\Pi[\vec{R}']}{P[\vec{R}'|\vec{R}]\Pi[\vec{R}]}\right\}.
 \end{equation}
-With this definition of the acceptance probability, the Markov chain is ensured to sample from the target distribution $\Pi$, so that given enough Monte Carlo cycles the mean value of $\varepsilon$ will converge to its true expected value $\ev{\varepsilon}_\Pi$. While almost magical in its simplicity, it is now clear how the Metropolis algorithm can sample from $\Pi$ without ever calculating the large integral in \eqref{distribution}; because only a ratio of $\Pi$ values appears in the acceptance ratio above, the integral cancels out and is in some sense removed from the problem.
+With this definition of the acceptance probability, the Markov chain is ensured to eventually sample from all corners of the sample space, so that given enough Monte Carlo cycles the sample mean value of $\varepsilon$ will converge to its true expected value $\ev{\varepsilon}_\Pi$. While almost magical in its simplicity, it is now clear how the Metropolis algorithm can sample from $\Pi$ without ever calculating the large integral in \eqref{distribution}; because only a ratio of $\Pi$ values appears in the acceptance ratio above, the integral cancels out and is in some sense removed from the problem.
 
-As for the proposal distribution $P$, it can in principle be any distribution, but the choice will affect both the acceptance ratio to be computed from \eqref{acc} as well as the number of Monte Carlo cycles required for the VMC energy $E_\text{VMC}$ to converge. Because the proposal distribution directly affects the moves which are proposed and thus sampled, the choice of proposal distribution corresponds to choosing a sampling method for the Metropolis algorithm. Note that because the trial wavefunction defined in \eqref{trialstate} is a product of functions which depend on only one or two particles each, the acceptance ratio computation simplifies significantly if only one random particle is chosen and moved in each move. In other words, by picking one random particle $i$ with probability $\frac{1}{N}$ and then drawing a move for this particle from some proposal distribution $P[\vec{R}'_i|\vec{R}]$, the acceptance probability reduces to
-\begin{equation}
-A[\vec{R}'_i|\vec{R}] = \min\left\{1,\frac{P[\vec{R}|\vec{R}'_i]}{P[\vec{R}'_i|\vec{R}]}\prod\limits_{j \neq i} \frac{g^2[\vec{r'}_i]f^2[\Delta r'_{ij}]}{g^2[\vec{r}_i]f^2[\Delta r_{ij}]}\right\}, \label{acc_i}
+As for the proposal distribution $P$, it can in principle be any distribution as long as \eqref{propdistcint} is fulfilled, but the choice will affect both the acceptance ratio to be computed from \eqref{accprob} as well as the number of Monte Carlo cycles required for the VMC energy $E_\text{VMC}$ to converge. Because the proposal distribution directly affects the moves which are proposed and thus sampled, the choice of proposal distribution corresponds to choosing a sampling method for the Metropolis algorithm. Note that because the trial wavefunction defined in \eqref{trialstate} is a product of functions which depend only on one or two particles each, the computation of the acceptance ratio $A$ simplifies significantly if only one random particle is chosen and moved in each move. In other words, by picking one random particle $i$ with probability $\frac{1}{N}$ and then drawing a move for this particle from some proposal distribution $P[\vec{R}'_i|\vec{R}]$, the expression \eqref{accprob} for the acceptance probability $A$ reduces to
+\begin{equation}\label{accprob_i}
+A[\vec{R}'_i|\vec{R}] = \min\left\{1,\frac{P[\vec{R}|\vec{R}'_i]}{P[\vec{R}'_i|\vec{R}]}\prod\limits_{j \neq i} \frac{g^2[\vec{r'}_i]f^2[\Delta r'_{ij}]}{g^2[\vec{r}_i]f^2[\Delta r_{ij}]}\right\},
 \end{equation}
 where the only difference between the configurations $\vec{R}$ and $\vec{R}'_i$ is that the position $\vec{r}_i$ of the randomly chosen particle $i$ has changed to $\vec{r'}_i$.  Hence instead of computing the whole trial wavefunction at each Monte Carlo cycle, only the factors involving particle $i$ need to be computed.
 
-Two sampling methods based on single particle moves will be considered in this text. In the first brute-force "random step" method, a new position for particle $i$ is drawn as
-\begin{equation}
-\vec{r'}_i = \vec{r}_i+\widetilde{\delta\vec{r}}, \label{propRS}
+Two sampling methods based on single particle moves will be considered in this report. In the first brute-force "random step" method, a new position for particle $i$ is drawn as
+\begin{equation}\label{propRS}
+\vec{r'}_i = \vec{r}_i+\widetilde{\delta\vec{r}},
 \end{equation}
 where $\widetilde{\delta\vec{r}}$ is a stochastic vector drawn uniformly from the interval $-\delta s \leftrightarrow \delta s$ in each spatial direction for some fixed step size $\delta s$. The proposal distribution $P$ in this case is symmetric,
 \begin{equation}
 p[\vec{R}'_i|\vec{R}] = p[\vec{R}|\vec{R}'_i], \nonumber
 \end{equation}
-so the acceptance probability in \eqref{acc_i} reduces to
-\begin{equation}
-A[\vec{R}'_i|\vec{R}] = \min\left\{1,\prod\limits_{j \neq i} \frac{g^2[\vec{r'}_i]f^2[\Delta r'_{ij}]}{g^2[\vec{r}_i]f^2[\Delta r_{ij}]}\right\}. \label{accRS}
+so the acceptance ratio in \eqref{accprob_i} reduces to
+\begin{equation}\label{accprobRS}
+A[\vec{R}'_i|\vec{R}] = \min\left\{1,\prod\limits_{j \neq i} \frac{g^2[\vec{r'}_i]f^2[\Delta r'_{ij}]}{g^2[\vec{r}_i]f^2[\Delta r_{ij}]}\right\}.
 \end{equation}
 
-\subsection{Quantum drift sampling} \label{QDsampling}
-
-The second sampling method to be considered, referred to as the "quantum drift" method, is based on the Langevin equation – a stochastic differential equation originally introduced to consider Brownian motion. Its original full form is
+\subsection{Quantum drift sampling}\label{QDsampling}
+The second sampling method to be considered, referred to as the "quantum drift" method, is based on the \textit{Langevin equation} – a stochastic differential equation originally introduced to consider Brownian motion. Its original full form is
 \begin{equation}
-m\frac{\delta^2\vec{r}}{\delta t^2} = -\gamma\frac{\delta\vec{r}}{\delta t}+\vec{F}[\vec{r}]+\widetilde{\vec{B}}, \label{originalLangevin}
+m\frac{\delta^2\vec{r}}{\delta t^2} = -\gamma\frac{\delta\vec{r}}{\delta t}+\vec{F}[\vec{r}]+\widetilde{\vec{B}},
 \end{equation}
-which is nothing else than Newton's second law for a particle subject to a frictional force $-\gamma\frac{\delta\vec{r}}{\delta t}$, an external force field $\vec{F}$ as well as a stochastic force $\widetilde{\vec{B}}$ meant to invoke random fluctuations in the particle's trajectory. In the case of a very strong frictional force the acceleration can be neglected, and the equation reduces to the overdamped Langevin equation
+which is nothing else than Newton's second law for a particle subject to a frictional force $-\gamma\frac{\delta\vec{r}}{\delta t}$, an external force field $\vec{F}$ as well as a stochastic Brownian force $\widetilde{\vec{B}}$ meant to invoke random fluctuations in the particle's trajectory. In the case of a very strong frictional force the acceleration can be neglected, and the equation reduces to the overdamped Langevin equation
 \begin{equation}
-\frac{\delta\vec{r}}{\delta t} = \frac{\vec{F}[\vec{r}]}{\gamma}+\frac{\widetilde{\vec{B}}}{\gamma}, \label{overdampedLangevin}
+\frac{\delta\vec{r}}{\delta t} = \frac{\vec{F}[\vec{r}]}{\gamma}+\frac{\widetilde{\vec{B}}}{\gamma},
 \end{equation}
 Using now the length unit set in section \ref{system} and introducing a suitable time unit, this equation can be made dimensionless and recast to
-\begin{equation}
-\frac{\delta\vec{r}}{\delta t} = \frac{1}{2}\vec{Q}[\vec{r}]+\widetilde{\vec{W}}, \label{Langevin}
+\begin{equation}\label{Langevin}
+\frac{\delta\vec{r}}{\delta t} = \frac{1}{2}\vec{Q}[\vec{r}]+\widetilde{\vec{W}}, 
 \end{equation}
-where $\vec{Q}$ is a dimensionless drift term and $\widetilde{\vec{W}}$ is a dimensionless stochastic term. Discretising this with the Euler-Maruyama method (a modified Euler method for stochastic differential equations) a new algorithm emerges for proposing moves for the random particle $i$ through
+where $\vec{Q}$ is a dimensionless drift term and $\widetilde{\vec{W}}$ is a dimensionless stochastic term. Discretising this with the \textit{Euler-Maruyama method} (a modified Euler method for stochastic differential equations) a new algorithm emerges for proposing moves for the random particle $i$ through
 \begin{equation}
 \vec{r'}_i = \vec{r}_i+\frac{1}{2}\vec{Q}_i[\vec{R}]\delta t + \widetilde{\delta\vec{r}}
 \end{equation}
-for some fixed small (dimensionless) time step $\delta t$ and a stochastic vector $\widetilde{\delta\vec{r}}$ drawn from a normal distribution with mean zero and deviation $\sqrt{\delta t}$ in each spatial direction. For some consistency with random step sampling $\delta s$ can be introduced as
+for some fixed small (dimensionless) time step $\delta t$ and a stochastic vector $\widetilde{\delta\vec{r}}$ drawn from a normal distribution with mean zero and deviation $\sqrt{\delta t}$ in each spatial direction. For some consistency with the random step sampling method introduced at the end of section \ref{Metropolis}, $\delta s$ can be introduced as
 \begin{equation}
 \delta s = \sqrt{\delta t}
 \end{equation}
 to recast the proposal algorithm as
-\begin{equation}
-\vec{r'}_i = \vec{r}_i+\frac{1}{2}\vec{Q}_i[\vec{R}]\delta s^2 + \widetilde{\delta\vec{r}}, \label{propLD}
+\begin{equation}\label{propLD}
+\vec{r'}_i = \vec{r}_i+\frac{1}{2}\vec{Q}_i[\vec{R}]\delta s^2 + \widetilde{\delta\vec{r}}, 
 \end{equation}
 in which $\widetilde{\delta\vec{r}}$ now is a stochastic vector drawn from a normal distribution with mean zero and deviation $\delta s$ in each spatial direction.
 
-The proposal distribution $P$ for the algorithm in \eqref{propLD} is not symmetric, but can be found by considering the corresponding Fokker-Planck equation, which is a partial differential equation describing the time evolution of the spatial configuration distribution $\Pi$ when the Langevin equation is invoked. The Fokker-Planck equation corresponding to the overdamped Langevin equation \eqref{Langevin} is also known as the Smoluchowski equation and is given by
-\begin{equation}
-\frac{\delta\Pi}{\delta t} = \frac{1}{2}\vec{\nabla}_i\cdot\left(\vec{\nabla}_i-\vec{Q}_i\right)\Pi. \label{Smoluchowski}
+The proposal distribution $P$ for the algorithm in \eqref{propLD} is not symmetric, but can be found by considering the corresponding \textit{Fokker-Planck equation}, which is a partial differential equation describing the time evolution of the spatial configuration distribution $\Pi$ when a Langevin equation is invoked on a particle. The Fokker-Planck equation corresponding to the overdamped Langevin equation \eqref{Langevin} is also known as the \textit{Smoluchowski equation} and is given by
+\begin{equation}\label{Smoluchowski}
+\frac{\delta\Pi}{\delta t} = \frac{1}{2}\vec{\nabla}_i\cdot\left(\vec{\nabla}_i-\vec{Q}_i\right)\Pi.
 \end{equation}
 The spatial configuration distribution $\Pi$ is sure to remain constant as long as the drift term $\vec{Q}_i$ takes the form
 \begin{equation}
 \vec{Q}_i[\vec{R}] = \frac{\vec{\nabla}_i\Pi[\vec{R}]}{\Pi[\vec{R}]},
 \end{equation}
-and the proposal distribution $P$ turns out to be nothing else than the Green function of the Smoluchowski equation,
-\begin{equation}
-G[\delta t, \vec{R}'_i|\vec{R}] = \sqrt{\frac{1}{2\pi \delta s^2}}^{DN} \epsilon^{-\frac{\left(\vec{r'}_i-\vec{r}_i-\frac{1}{2}\vec{Q}_i[\vec{R}]\delta s^2\right)^2}{2\delta s^2}}. \label{Green}
+and the proposal distribution $P$ turns out to be nothing else than the Green function of the Smoluchowski equation \eqref{Smoluchowski}, which can be calculated to be
+\begin{equation}\label{Green}
+G[\delta s; \vec{R}'_i|\vec{R}] = \sqrt{\frac{1}{2\pi \delta s^2}}^{DN} \epsilon^{-\frac{\left(\vec{r'}_i-\vec{r}_i-\frac{1}{2}\vec{Q}_i[\vec{R}]\delta s^2\right)^2}{2\delta s^2}}.
 \end{equation}
-In terms of Variational Monte Carlo the drift term is known as the "quantum drift" and takes the form
-\begin{equation}
-\vec{Q}_i[\vec{R}] = \frac{2\vec{\nabla}_i\Psi[\vec{R}]}{\Psi[\vec{R}]}. \label{defQuantumdrift}
+In terms of Variational Monte Carlo the drift term is known as the \textit{quantum drift} and takes the form
+\begin{equation}\label{quantumdrift}
+\vec{Q}_i[\vec{R}] = \frac{2\vec{\nabla}_i\Psi[\vec{R}]}{\Psi[\vec{R}]}.
 \end{equation}
-In appendix \ref{quantumdrift} an analytical expression for the quantum drift is found using the derivatives of the trial wavefunction $\Psi$ which were already calculated in appendix \ref{localenergy}. Noting that
+In appendix \ref{derQuantumdrift} an analytical expression for the quantum drift is found using the derivatives of the trial wavefunction $\Psi$ which were already calculated in appendix \ref{derLocalenergy}. Noting that
 \begin{align}
 &\left(\vec{r'}_i-\vec{r}_i-\frac{1}{2}\vec{Q}_i[\vec{R}]\delta s^2 \right)^2-\left(\vec{r}_i-\vec{r'}_i-\frac{1}{2}\vec{Q}_i[\vec{R}'_i]\delta s^2\right)^2 \nonumber\\
 &= -\left(\vec{r'}_i-\vec{r}_i\right) \cdot \left(\vec{Q}_i[\vec{R}'_i]+\vec{Q}_i[\vec{R}]\right)\delta s^2-\frac{\vec{Q}_i^2[\vec{R}'_i]-\vec{Q}_i^2[\vec{R}]}{4}\delta s^4 \nonumber\\
 &= -\left(\vec{r'}_i-\vec{r}_i+\frac{\vec{Q}_i[\vec{R}'_i]-\vec{Q}_i[\vec{R}]}{4}\delta s^2\right)\cdot\left(\vec{Q}_i[\vec{R}'_i]+\vec{Q}_i[\vec{R}]\right)\delta s^2 \nonumber
 \end{align}
-the acceptance probability in \eqref{acc_i} reduces in this case of quantum drift sampling to
+the acceptance probability in \eqref{accprob_i} reduces in this case of quantum drift sampling to
 \begin{align}
 &A[\vec{R}'_i|\vec{R}] = \min\Bigg\{1, \nonumber\\
 &\prod\limits_{j \neq i} \frac{g^2[\vec{r'}_i]f^2[\Delta r'_{ij}]}{g^2[\vec{r}_i]f^2[\Delta r_{ij}]}\epsilon^{-\frac{\vec{Q}_i[\vec{R}'_i]+\vec{Q}_i[\vec{R}]}{2}\cdot\left(\vec{r'}_i-\vec{r}_i+\frac{\vec{Q}_i[\vec{R}'_i]-\vec{Q}_i[\vec{R}]}{4}\delta s^2\right)}\Bigg\} \label{accLD}
 \end{align}
 when inserting the Green function in \eqref{Green} as the proposal distribution $P$.
 
-The quantum drift moves the particles with the distribution gradient, towards configurations of higher probability, and thus ensures that the "most important" configurations are sampled early on. This is why the quantum drift sampling method is also known as importance sampling, and it should in general lead to faster convergence of the energy bound $\ev{\varepsilon}_\Pi$ as a function of the number of Monte Carlo cycles.
+As apparent from its definition \eqref{quantumdrift}, the quantum drift moves the particles with the distribution gradient, towards configurations of higher probability, and thus ensures that the "most important" configurations are sampled early on. This is why the quantum drift sampling method is also known as \textit{importance sampling}, and it should in general lead to faster convergence of the VMC energy $E_\text{VMC}$ with respect to the number of Monte Carlo cycles.
 
-\subsection{Gradient descent variation} \label{gradientdescent}
-So far only the Monte Carlo sampling itself has been discussed, but an equally important part of Variational Monte Carlo is to find the optimal values for the variational parameters $\alpha$ and $\beta$. After all, calculating an energy bound $\ev{\varepsilon}_\Pi$ for \textit{some} $\alpha$ and $\beta$ ridiculously fast and to great precision with quantum drift Monte Carlo is no good if the bound is large compared to other values of $\alpha$ and $\beta$. Indeed the whole point of the variational principle \eqref{varprinciple} is that it provides an energy estimate if the bound is \textit{varied} and \textit{minimised} with respect to the variational parameters. Henceforth, paired values for $\alpha$ and $\beta$ are referred to as variational points.
 
-The crudest way to minimise the bound is to calculate it for a range of variational points and pick the lowest value. This "range variation" can only be expected to provide a reasonable energy estimate if the range of variational points are in the vincinity of the true minimum. A more sophisticated method of variation is the so-called "gradient descent variation", in which the variational gradient (the gradient of $\ev{\varepsilon}_\Pi$ with respect to $\alpha$ and $\beta$) is calculated at some initial variational point and used to guide the values of $\alpha$ and $\beta$ "downwards" towards regions of lower energy $\ev{\varepsilon}_\Pi$.
+\subsection{Gradient descent variation}\label{gradientdescent}
+So far only the Monte Carlo sampling itself has been discussed, but an equally important part of Variational Monte Carlo is to find the optimal values for the variational parameters, in the case of this report $\alpha$ and $\beta$. After all, estimating an energy bound $\ev{\varepsilon}_\Pi$ for \textit{some} $\alpha$ and $\beta$ ridiculously fast and to great precision with quantum drift Monte Carlo is no good if the bound is large compared to other values of $\alpha$ and $\beta$. Indeed the whole point of the Variational Principle \eqref{VP} is that it provides an energy estimate only when the bound is \_varied\_ and \_minimised\_ with respect to the variational parameters. In the following discussion as well as the rest of this report, paired values for $\alpha$ and $\beta$ are referred to as \textit{variational points}.
 
-In appendix \ref{vargrad} an analytical expression for the gradient is calculated, which turns out to require sampling of the quantities $\frac{\partial\ln\Psi}{\partial\alpha}$ and $\frac{\partial\ln\Psi}{\partial\beta}$ as well as their products with the local energy $\varepsilon$ at each Monte Carlo cycle so that the expected values $\ev{\frac{\partial\ln\Psi}{\partial\alpha_i}\varepsilon}_\Pi$ and $\ev{\frac{\partial\ln\Psi}{\partial\alpha_i}}_\Pi$ can be estimated. Then, new, better values of $\alpha$ and $\beta$ can be found through
+The crudest way to minimise the energy bound $\ev{\varepsilon}_\Pi$ is to estimate it for some range of variational points and pick the lowest value. This "range variation" can only be expected to provide a reasonable energy estimate if the range of variational points are in the vincinity of the true minimum. A more sophisticated method of variation is the so-called \textit{gradient descent variation}, in which the variational gradient (the gradient of $\ev{\varepsilon}_\Pi$ with respect to $\alpha$ and $\beta$) is estimated at some initial variational point and used to guide the values of $\alpha$ and $\beta$ "downwards" towards regions of lower energy $\ev{\varepsilon}_\Pi$.
+
+In appendix \ref{derVargrad} an analytical expression for the variational gradient is calculated, which turns out to require sampling of the quantities $\frac{\partial\ln\Psi}{\partial\alpha}$ and $\frac{\partial\ln\Psi}{\partial\beta}$ as well as their products with the local energy $\varepsilon$ at each Monte Carlo cycle so that the expected values $\ev{\frac{\partial\ln\Psi}{\partial\alpha_i}\varepsilon}_\Pi$ and $\ev{\frac{\partial\ln\Psi}{\partial\alpha_i}}_\Pi$ can be estimated. Then, new, better values of $\alpha$ and $\beta$ can be found through
 \begin{align}
 \alpha' &= \alpha-\frac{\partial\ev{\varepsilon}_\Pi}{\partial\alpha}\delta v, \\
 \beta' &= \beta-\frac{\partial\ev{\varepsilon}_\Pi}{\partial\beta}\delta v,
 \end{align}
-for some small step size $\delta v$. This step size should be tuned so that it is small enough for the gradient descent to converge towards the closest variational minimum, but no smaller as the convergence will then be slower. When the gradient $\frac{\partial\ev{\varepsilon}_\Pi}{\partial\alpha_i}$ is less than some small convergence threshold $\delta g$ in both directions, approximately optimal values of $\alpha$ and $\beta$ have been found. The smaller the convergence threshold, the better the approximation.
+for some small step size $\delta v$. This step size should be tuned so that it is small enough for the gradient descent to converge towards the closest variational minimum, but no smaller as convergence will then be slower. When the gradient $\frac{\partial\ev{\varepsilon}_\Pi}{\partial\alpha_i}$ is less than some small convergence threshold $\delta g$ in both directions, approximately optimal values of $\alpha$ and $\beta$ have been found. The smaller the convergence threshold, the better the approximation.
 
-Because of the finite step size $\delta v$ and convergence threshold $\delta g$, gradient descent as described here is only approximate anyway, so there is no need to run too many Monte Carlo cycles at each variational point during descent. Hence a large number of Monte Carlo cycles will only be run at the final, optimal variational point, and so gradient descent variation should both be faster and more accurate than range variation, especially when the optimal variational parameters are not known.
+Because of the finite step size $\delta v$ and convergence threshold $\delta g$, gradient descent variation as described here is only approximate anyway, so there is no need to run too many Monte Carlo cycles at each variational point during descent. Hence a large number of Monte Carlo cycles will only be run at the final, optimal variational point, and so gradient descent variation should both be faster and more accurate than range variation, especially when the optimal variational parameters $\alpha$ and $\beta$ are not known.
+
 
 \subsection{Block resampling}
-As described in section \ref{Metropolis}, the calculated energy bound $E_\text{VMC}$ converges towards the true bound $\ev{\varepsilon}_\Pi$ for a large number of Monte Carlo cycles $C$. However, the statistical error given in \eqref{error} is only correct if there is no correlation between the samples. The Metropolis algorithm presented here however, proposes to move only a single particle a short distance with each Monte Carlo cycle. Therefore two configurations following each other in the proposed Markov chain should be strongly correlated; indeed there should be correlation between whole chains of subsequent configurations because the system needs several cycles to "get away" from any current configuration. A more formal way of measuring this correlation is by considering the sample autocovariance
+As described in section \ref{Metropolis}, the calculated sample mean bound $E_\text{VMC}$ converges towards the true energy bound $\ev{\varepsilon}_\Pi$ for a large number of Monte Carlo cycles $M$. However, the statistical error given in \eqref{error} is only correct if there is no correlation between the samples. The Metropolis algorithm presented here however, proposes to move only a single particle a short distance with each Monte Carlo cycle. Therefore two configurations following each other in the proposed Markov chain should be strongly correlated; indeed there should be correlation between whole chains of subsequent configuratins because the system needs several cycles to "get away" from any current configuration.
+
+A more formal way of measuring correlation in the samples of $\varepsilon$ is considering the \textit{sample autocovariance}
 \begin{equation}
-\aucov_l[\varepsilon] = \frac{1}{C-l}\sum\limits_c^{C-l} \left(\varepsilon[\vec{R}_c]-\ev{\varepsilon}\right)\left(\varepsilon[\vec{R}_{c+l}]-\ev{\varepsilon}\right)
+\aucov_l[\varepsilon] = \frac{1}{M-l}\sum\limits_m^{M-l} \left(\varepsilon[\vec{R}_m]-E_\text{VMC}\right)\left(\varepsilon[\vec{R}_{m+l}]-E_\text{VMC}\right)
 \end{equation}
-for all chain lengths $l$ less than $C$. As long as this covariance is finite for any $l$, the samples generated from the Metropolis algorithm are correlated, which means that the statistical error formula \eqref{error} should be replaced by
-\begin{equation}
-\Delta E_\text{VMC} = \sqrt{\frac{1}{C} \left(\van[\varepsilon]+2\sum\limits_{l=1}^{C-1} \aucov_l[\varepsilon]\right)}. \label{error2}
+for all chain lengths $l$ less than $M$. As long as this covariance is finite for any $l$, the samples generated from the Metropolis algorithm are correlated, which means that the statistical error formula \eqref{error} should be replaced by
+\begin{equation}\label{error2}
+\Delta E_\text{VMC} = \sqrt{\frac{1}{M} \left(\van[\varepsilon]+2\sum\limits_{l=1}^{M-1} \aucov_l[\varepsilon]\right)}.
 \end{equation}
-This expression involves a double sum in the autocovariance term, which can be quite costly for long Monte Carlo simulations with a high amount of samples.
-
-A more efficient method of estimating the correct statistical error, is so-called "block resampling". Resampling of an experiment means extracting better statistical estimates using nothing but the original sample set. The block resampling method is based on the idea that the statistical error of the sample set becomes more apparent if the samples are partitioned into larger blocks and the block averages are used as samples instead. Mathematically, the sample set is transformed with
-\begin{equation}
-\varepsilon'_c = \frac{\varepsilon_{2c-1}+\varepsilon_{2c}}{2}, \label{blocking}
+But this expression involves a double sum in the autocovariance term, which can be quite costly for long Monte Carlo simulations with a high amount of samples. A more efficient method of estimating the correct statistical error, is so-called \textit{block resampling}. Resampling of an experiment in general means extracting better statistical estimates using nothing but the original sample set. The block resampling method is based on the idea that the statistical error of the sample set becomes more apparent if the samples are partitioned into larger blocks and the block averages are used as samples instead. Mathematically, the sample set of $\varepsilon$ is transformed with
+\begin{equation}\label{blocking}
+\varepsilon'_m = \frac{\varepsilon_{2m-1}+\varepsilon_{2m}}{2},
 \end{equation}
-for all $c$ from $1$ to $\frac{C}{2}$. The new sample set is half the size of the original sample set, but both the sample mean and the statistical error are conserved through this "blocking transformation". The sample variance however will be different, and it can be shown that the transformation corresponds to "shifting weight" from the autocovariance terms in \eqref{blocking} to the variance term. By blocking multiple times, this shifting continues until the samples are no longer correlated. At this point, the statistical error formula \eqref{error2} reduces to the simple form in \eqref{error}. Continued blocking will eventually shift the error away from the variance term again when the number of samples approaches zero. However, the sample variance will converge strongly towards its maximum and fluctuate around it for a while before declining. Hence blocking can simply be continued until the sample variance declines for the first time. The maximal value of the sample variance can then be used with equation \eqref{error} to provide a much better estimate of the statistical error for the VMC results.
+for all sample indices $m$ from $1$ to $\frac{M}{2}$. The new sample set is half the size of the original sample set, but both the sample mean and the statistical error turns out to be conserved through this "blocking" of the samples. The sample variance however will be different, and it can be shown that the transformation \eqref{blocking} corresponds to "shifting weight" from the autocovariance terms in \eqref{error2} to the variance term. By blocking multiple times this shifting continues until the samples are no longer correlated, at which point the statistical error formula \eqref{error2} reduces to the simple form in \eqref{error}. Continued blocking will eventually shift the error away from the variance term again when the number of samples approaches zero. However, the sample variance turns out to converge strongly towards its maximum and fluctuate around it for a while before declining. Hence blocking can simply be continued until the sample variance declines for the first time. The maximal value of the sample variance can then be used with equation \eqref{error} to provide a higher but much more correct estimate of the statistical error for the VMC energy $E_\text{VMC}$.
 
 
-\section{Method} \label{method}
-
+\section{Method}\label{method}
 |||beskrivelse av kode og framgangsmåte på numeriske eksperimenter||
 
 
-\section{Results} \label{results}
-
+\section{Results}\label{results}
 |||presentasjon og diskusjon av resultatene, samt sammenligning med \cite{SWL}|||
 
 
 \section{Conclusion}
-
 |||oppsummering og læringsutbytte|||
 
 
@@ -288,48 +284,49 @@ for all $c$ from $1$ to $\frac{C}{2}$. The new sample set is half the size of th
 \renewcommand{\theequation}{\thesection\arabic{equation}}
 \section*{APPENDIX}
 \section{Calculations}
-
 Some of the longer analytical calculations of the project are presented here.
 
-\subsection{Local energy $\varepsilon$} \label{localenergy}
-Equation \eqref{defLocalenergy} defines the local energy $\varepsilon$ through the Hamiltonian $H$ given in \eqref{Hamiltonian} and the trial wavefunction $\Psi$ given in \eqref{trialstate}. The potential terms $U$ og $V$ in the Hamiltonian give direct contributions to the local energy, but the kinetic term with its second derivative $\vec{\nabla}_i^2\Psi$ needs to be considered further. To this end, write
+
+\subsection{Local energy $\varepsilon$}\label{derLocalenergy}
+Equation \eqref{localenergy} defines the local energy $\varepsilon$ through the Hamiltonian $H$ given in \eqref{Ham} and the trial wavefunction $\Psi$ given in \eqref{trialstate}. The potential terms $U$ og $V$ in the Hamiltonian give direct contributions to the local energy, but the kinetic term with its second derivative $\vec{\nabla}_i^2\Psi$ needs to be considered further. To this end, write
 \begin{equation}
 \Psi[\vec{R}] = G[\vec{R}]F[\vec{R}]
 \end{equation}
 with
 \begin{align}
-G[\vec{R}] &= \prod\limits_i^N g[\vec{r}_i] \\
-F[\vec{R}] &= \prod\limits_j^N\prod\limits_{k > j}^N f[\Delta{r}_{jk}] 
+G[\vec{R}] &= \prod\limits_i^N g[\vec{r}_i] \label{G}\\
+F[\vec{R}] &= \prod\limits_j^N\prod\limits_{k > j}^N f[\Delta{r}_{jk}] \label{F}
 \end{align}
 and note that
 \begin{equation}
 \vec{\nabla}_i^2\Psi = \vec{\nabla}_i\cdot\left(\vec{\nabla}_i G F + G \vec{\nabla}_i F\right) = \vec{\nabla}_i^2 G F + 2\vec{\nabla}_i G \cdot \vec{\nabla}_i F + G \vec{\nabla}_i^2 F. \label{Lap_Psi_1} 
 \end{equation}
 Hence the derivatives of both $G$ and $F$ must be calculated in order to get an analytical expression for the local energy $\varepsilon$. The derivatives of $G$ are 
-\begin{equation}
-\vec{\nabla}_i G = \vec{\nabla}_i g[\vec{r}_i] \prod\limits_{j \neq i}^N g[\vec{r_j}] \quad\Longrightarrow\quad \vec{\nabla}_i^2 G = \vec{\nabla}_i^2 g[\vec{r}_i] \prod\limits_{j \neq i}^N g[\vec{r_j}],
-\end{equation}
+\begin{align}
+\vec{\nabla}_i G &= \vec{\nabla}_i g[\vec{r}_i] \prod\limits_{j \neq i}^N g[\vec{r_j}] \nonumber\\
+\Longrightarrow\quad \vec{\nabla}_i^2 G &= \vec{\nabla}_i^2 g[\vec{r}_i] \prod\limits_{j \neq i}^N g[\vec{r_j}], \nonumber
+\end{align}
 and because the derivatives of $g$ are
 \begin{align}
-\vec{\nabla}_i g[\vec{r}_i] &= -2\alpha\Big(\vec{r}_i+(\beta-1)\vec{z}_i\Big)g[\vec{r}_i] \\
-\Longrightarrow \vec{\nabla}_i^2 g[\vec{r}_i] &= -2\alpha\left(\Big(D+(\beta-1)\Big)g[\vec{r}_i]+\Big(\vec{r}_i+(\beta-1)\vec{z}_i\Big)\cdot\vec{\nabla}_i g[\vec{r}_i]\right) \nonumber\\
-&= 2\alpha\left(2\alpha\Big(\vec{r}_i+(\beta-1)\vec{z}_i\Big)^2-\Big(D+(\beta-1)\Big)\right)g[\vec{r}_i]
+\vec{\nabla}_i g[\vec{r}_i] &= -2\alpha\Big(\vec{x}_i+\vec{y}_i+\beta\vec{z}_i\Big)g[\vec{r}_i] \\
+\Longrightarrow \vec{\nabla}_i^2 g[\vec{r}_i] &= -2\alpha\left(\Big(D+(\beta-1)\delta_{D,3}\Big)g[\vec{r}_i]+\Big(\vec{x}_i+\vec{y}_i+\beta\vec{z}_i\Big)\cdot\vec{\nabla}_i g[\vec{r}_i]\right) \nonumber\\
+&= 2\alpha\left(2\alpha\Big(\vec{x}_i+\vec{y}_i+\beta\vec{z}_i\Big)^2-\Big(D+(\beta-1)\delta_{D,3}\Big)\right)g[\vec{r}_i]
 \end{align}
-these are quite simply given by
+where $\delta$ is the Kronecker delta, these are quite simply given by
 \begin{align}
-&\vec{\nabla}_i G = -2\alpha\Big(\vec{r}_i+(\beta-1)\vec{z}_i\Big)G, \label{grad_G}\\
-&\vec{\nabla}_i^2G = 2\alpha\left(2\alpha\Big(\vec{r}_i+(\beta-1)\vec{z}_i\Big)^2-\Big(D+(\beta-1)\delta_{D,3}\Big)\right)G \label{Lap_G}
+&\vec{\nabla}_i G = -2\alpha\Big(\vec{x}_i+\vec{y}_i+\beta\vec{z}_i\Big)G, \label{grad_G}\\
+&\vec{\nabla}_i^2G = 2\alpha\left(2\alpha\Big(\vec{x}_i+\vec{y}_i+\beta\vec{z}_i\Big)^2-\Big(D+(\beta-1)\delta_{D,3}\Big)\right)G. \label{Lap_G}
 \end{align}
-where $\delta_{D,3}$ is the Kronecker delta. To find the derivatives of $F$, rewrite the product to the exponential form 
+To find the derivatives of $F$, rewrite the product in \eqref{F} to the exponential form 
 \begin{equation}
-F[\vec{R}] = \epsilon^{\sum\limits_{j}^N\sum\limits_{k > j}^N \ln f[\Delta{r}_{jk}]},
+F[\vec{R}] = \epsilon^{\sum\limits_{j}^N\sum\limits_{k > j}^N \ln f[\Delta{r}_{jk}]}
 \end{equation}
 and note that
 \begin{align}
-\vec{\nabla}_i F &= \sum\limits_{j \neq i}^N \left(\frac{\vec{\nabla}_i f[\Delta{r}_{ij}]}{f[\Delta{r}_{ij}]}\right) F \\
+\vec{\nabla}_i F &= \sum\limits_{j \neq i}^N \left(\frac{\vec{\nabla}_i f[\Delta{r}_{ij}]}{f[\Delta{r}_{ij}]}\right) F \nonumber\\
 \Longrightarrow \vec{\nabla}_i^2 F &= \sum\limits_{j \neq i}^N \left(\vec{\nabla}_i\cdot\left[\frac{\vec{\nabla}_i f[\Delta{r}_{ij}]}{f[\Delta{r}_{ij}]}\right]\right) F + \sum\limits_{j \neq i}^N \left(\frac{\vec{\nabla}_i f[\Delta{r}_{ij}]}{f[\Delta{r}_{ij}]}\right)\cdot \vec{\nabla}_i F \nonumber\\
 &= \sum\limits_{j \neq i}^N \left(\frac{\vec{\nabla}_i^2 f[\Delta{r}_{ij}]}{f[\Delta{r}_{ij}]} - \frac{\left(\vec{\nabla}_i f[\Delta{r}_{ij}]\right)^2}{f^2[\Delta{r}_{ij}]}\right) F + \sum\limits_{j \neq i}^N \sum\limits_{k \neq i}^N \left(\frac{\vec{\nabla}_i f[\Delta{r}_{ij}] \cdot\vec{\nabla}_i f[\Delta{r}_{ik}]}{f[\Delta{r}_{ij}]f[\Delta{r}_{ik}]}\right) F \nonumber\\
-&= \sum\limits_{j \neq i}^N \left(\frac{\vec{\nabla}_i^2 f[\Delta{r}_{ij}]}{f[\Delta{r}_{ij}]} + \sum\limits_{{k \neq i}\atop{k \neq j}}^N \frac{\vec{\nabla}_i f[\Delta{r}_{ij}] \cdot\vec{\nabla}_i f[\Delta{r}_{ik}]}{f[\Delta{r}_{ij}]f[\Delta{r}_{ik}]}\right) F.
+&= \sum\limits_{j \neq i}^N \left(\frac{\vec{\nabla}_i^2 f[\Delta{r}_{ij}]}{f[\Delta{r}_{ij}]} + \sum\limits_{{k \neq i}\atop{k \neq j}}^N \frac{\vec{\nabla}_i f[\Delta{r}_{ij}] \cdot\vec{\nabla}_i f[\Delta{r}_{ik}]}{f[\Delta{r}_{ij}]f[\Delta{r}_{ik}]}\right) F. \nonumber
 \end{align}
 The derivatives of $f$ are
 \begin{align}
@@ -337,9 +334,9 @@ The derivatives of $f$ are
 \Longrightarrow \vec{\nabla}_i^2 f[\Delta{r}_{ij}] &= \frac{aD}{\Delta{r}_{ij}^3}-\frac{3a\Delta\vec{r}_{ij}^2}{\Delta{r}_{ij}^5} \nonumber\\
 &= \frac{a(D-3)}{\Delta{r}_{ij}^3}
 \end{align}
-as long as all $\Delta{r}_{ij} > a$. Now since
+as long as all $\Delta{r}_{ij} > a$. Now since, by the definition \eqref{f}, 
 \begin{equation}
-\Delta{r}_{ij} f[\Delta{r}_{ij}] = \Delta{r}_{ij}-a
+\Delta{r}_{ij} f[\Delta{r}_{ij}] = \Delta{r}_{ij}-a \nonumber
 \end{equation}
 it follows that
 \begin{align}
@@ -349,32 +346,33 @@ it follows that
 
 Then in total equation \eqref{Lap_Psi_1} takes the form
 \begin{align}
-\vec{\nabla}_i^2\Psi &= 2\alpha\left(2\alpha\Big(\vec{r}_i+(\beta-1)\vec{z}_i\Big)^2-\Big(D+(\beta-1)\delta_{D,3}\Big)\right) \Psi \nonumber\\
-&- 4\alpha\Big(\vec{r}_i+(\beta-1)\vec{z}_i\Big) \cdot \sum\limits_{j \neq i}^N \left(\frac{a\Delta\vec{r}_{ij}}{\Delta{r}_{ij}^2(\Delta{r}_{ij}-a)}\right) \Psi \nonumber\\
+\vec{\nabla}_i^2\Psi &= 2\alpha\left(2\alpha\Big(\vec{x}_i++\vec{y}_i+\beta\vec{z}_i\Big)^2-\Big(D+(\beta-1)\delta_{D,3}\Big)\right) \Psi \nonumber\\
+&- 4\alpha\Big(\vec{x}_i+\vec{y}_i+\beta\vec{z}_i\Big) \cdot \sum\limits_{j \neq i}^N \left(\frac{a\Delta\vec{r}_{ij}}{\Delta{r}_{ij}^2(\Delta{r}_{ij}-a)}\right) \Psi \nonumber\\
 &+ \sum\limits_{j \neq i}^N \left(\frac{a(D-3)}{\Delta{r}_{ij}^2(\Delta{r}_{ij}-a)} + \sum\limits_{{k \neq i}\atop{k \neq j}}^N \frac{a^2 \Delta\vec{r}_{ij} \cdot \Delta\vec{r}_{ik}}{\Delta{r}_{ij}^2(\Delta{r}_{ij}-a) \Delta{r}_{ik}^2(\Delta{r}_{ik}-a)}\right) \Psi \nonumber\\
-\Longrightarrow \frac{\vec{\nabla}_i^2\Psi}{\Psi} &= 2\alpha\left(2\alpha\Big(\vec{r}_i+(\beta-1)\vec{z}_i\Big)^2-\Big(D+(\beta-1)\delta_{D,3}\Big)\right) \nonumber\\
-&+ \sum\limits_{j \neq i}^N \frac{a(D-3) - 4\alpha\Big(\vec{r}_i+(\beta-1)\vec{z}_i\Big) \cdot a\Delta\vec{r}_{ij}}{\Delta{r}_{ij}^2(\Delta{r}_{ij}-a)} \nonumber\\
+\Longrightarrow \frac{\vec{\nabla}_i^2\Psi}{\Psi} &= 2\alpha\left(2\alpha\Big(\vec{x}_i++\vec{y}_i+\beta\vec{z}_i\Big)^2-\Big(D+(\beta-1)\delta_{D,3}\Big)\right) \nonumber\\
+&+ \sum\limits_{j \neq i}^N \frac{a(D-3) - 4\alpha\Big(\vec{x}_i++\vec{y}_i+\beta\vec{z}_i\Big) \cdot a\Delta\vec{r}_{ij}}{\Delta{r}_{ij}^2(\Delta{r}_{ij}-a)} \nonumber\\
 &+ \sum\limits_{j \neq i}^N \sum\limits_{{k \neq i}\atop{k \neq j}}^N \frac{a^2 \Delta\vec{r}_{ij} \cdot \Delta\vec{r}_{ik}}{\Delta{r}_{ij}^2(\Delta{r}_{ij}-a) \Delta{r}_{ik}^2(\Delta{r}_{ik}-a)}
 \end{align}
 and by introducing the quantities
 \begin{align}
-\vec{q}[\vec{r}_i] &= -4\alpha\Big(\vec{r}_i+(\beta-1)\vec{z}_i\Big), \label{q}\\
+\vec{q}[\vec{r}_i] &= -4\alpha\Big(\vec{x}_i++\vec{y}_i+\beta\vec{z}_i\Big), \label{q}\\
 d[\Delta{r}_{ij}] &= \Delta{r}_{ij}^2(\Delta{r}_{ij}-a), \label{d}\\
 \vec{s}[\Delta\vec{r}_{ij}] &= \frac{a\Delta\vec{r}_{ij}}{2d[\Delta{r}_{ij}]}, \label{s}
 \end{align}
 it follows that the total analytic expression for the local energy is
 \begin{align}
 \varepsilon[\vec{R}] &= \alpha N\Big(D+(\beta-1)\delta_{D,3}\Big) + \sum\limits_i^N \frac{1}{2}\left( U[\vec{r}_i] - \frac{1}{4}\vec{q}^2[\vec{r}_i] \right) \nonumber\\
-&- \sum\limits_i^N \sum\limits_{j \neq i}^N \left( \frac{a(D-3)}{2d[\Delta{r}_{ij}]} + \vec{q}[\vec{r}_i] \cdot \vec{s}[\Delta\vec{r}_{ij}] \right) - 2\sum\limits_i^N \sum\limits_{j \neq i}^N \sum\limits_{{k \neq i}\atop{k \neq j}}^N \vec{s}[\Delta\vec{r}_{ij}] \cdot \vec{s}[\Delta\vec{r}_{ik}]
+&- \sum\limits_i^N \sum\limits_{j \neq i}^N \left( \frac{a(D-3)}{2d[\Delta{r}_{ij}]} + \vec{q}[\vec{r}_i] \cdot \vec{s}[\Delta\vec{r}_{ij}] \right) - 2\sum\limits_i^N \sum\limits_{j \neq i}^N \sum\limits_{{k \neq i}\atop{k \neq j}}^N \vec{s}[\Delta\vec{r}_{ij}] \cdot \vec{s}[\Delta\vec{r}_{ik}] \label{anaLocalenergy}
 \end{align}
 as long as all $\Delta r_{ij} > a$. This last restriction is why the hard-sphere interaction energy $V$ is omitted altogether; for configurations in which $\Delta r_{ij} \leq a$ for some $i$ and $j$, the trial wavefunction $\Psi$ in \eqref{trialstate} is defined to be zero (because $f[\Delta r_{ij}]$ is zero), which in turn means that the Metropolis algorithm will never sample such configurations, and so the fact that the local energy would be infinite for such configurations (because $V$ is infinite) is not a problem.
 
-\subsection{Quantum drift $\vec{Q}$} \label{quantumdrift}
-Equation \eqref{defQuantumdrift} defines the quantum drift of the system. From the calculations of section \ref{localenergy} it follows that
+
+\subsection{Quantum drift $\vec{Q}$}\label{derQuantumdrift}
+Equation \eqref{quantumdrift} defines the quantum drift of the system. From the formulas \eqref{grad_G} and \eqref{grad_F} of section \ref{derLocalenergy} it follows that
 \begin{align}
 \vec{\nabla}_i\Psi &= \vec{\nabla}_i G F + G \vec{\nabla}_i F \nonumber\\
-&= -2\alpha\Big(\vec{r}_i+(\beta-1)\vec{z}_i\Big)\Psi + \sum\limits_{j \neq i}^N \left(\frac{a\Delta\vec{r}_{ij}}{\Delta{r}_{ij}^2(\Delta{r}_{ij}-a)}\right) \Psi \nonumber\\
-\Longrightarrow \frac{\vec{\nabla}_i\Psi}{\Psi} &= -2\alpha\Big(\vec{r}_i+(\beta-1)\vec{z}_i\Big) + \sum\limits_{j \neq i}^N \left(\frac{a\Delta\vec{r}_{ij}}{\Delta{r}_{ij}^2(\Delta{r}_{ij}-a)}\right),
+&= -2\alpha\Big(\vec{x}_i++\vec{y}_i+\beta\vec{z}_i\Big)\Psi + \sum\limits_{j \neq i}^N \left(\frac{a\Delta\vec{r}_{ij}}{\Delta{r}_{ij}^2(\Delta{r}_{ij}-a)}\right) \Psi \nonumber\\
+\Longrightarrow \frac{\vec{\nabla}_i\Psi}{\Psi} &= -2\alpha\Big(\vec{x}_i++\vec{y}_i+\beta\vec{z}_i\Big) + \sum\limits_{j \neq i}^N \left(\frac{a\Delta\vec{r}_{ij}}{\Delta{r}_{ij}^2(\Delta{r}_{ij}-a)}\right),
 \end{align}
 which means that the analytic expression for the quantum drift becomes
 \begin{equation}
@@ -382,17 +380,18 @@ which means that the analytic expression for the quantum drift becomes
 \end{equation}
 with the quantities introduced in \eqref{q}–\eqref{s}.
 
-\subsection{Variational gradient $\frac{\partial\ev{\varepsilon}_\Pi}{\partial\alpha_i}$} \label{vargrad}
+
+\subsection{Variational gradient $\frac{\partial\ev{\varepsilon}_\Pi}{\partial\alpha_i}$} \label{derVargrad}
 The energy bound $\ev{\varepsilon}_\Pi$ introduced in section \ref{varmethod} is given by
 \begin{equation}
 \ev{\varepsilon}_\Pi = \frac{\idotsint \Psi^2[\vec{R}] \varepsilon[\vec{R}] \delta^{DN}R}{\idotsint \Psi^2[\vec{R}]\delta^{DN}R} \label{energybound}
 \end{equation}
-in the case of a real trial state $\Psi$ such as the one defined in \eqref{trialstate} and considered here. Denoting the variational parameters as $\alpha_i$ for $i \in {1,2}$ such that $\alpha_1 = \alpha$ and $\alpha_2 = \beta$, it is relevant for gradient descent variation as discussed in section \ref{gradientdescent} to calculate the variational gradient $\frac{\partial \ev{\varepsilon}_\Pi}{\partial \alpha_i}$. As both $\Psi$ and $\varepsilon$ depends on $\alpha_i$, the gradient is
+in the case of a real trial state $\Psi$ such as the one defined in \eqref{trialstate} and considered here. Denoting the variational parameters as $\alpha_i$ for $i \in \{1,2\}$ such that $\alpha_1 = \alpha$ and $\alpha_2 = \beta$, it is relevant for gradient descent variation as discussed in section \ref{gradientdescent} to calculate the variational gradient $\frac{\partial \ev{\varepsilon}_\Pi}{\partial \alpha_i}$. As both $\Psi$ and $\varepsilon$ depends on $\alpha_i$, the gradient is
 \begin{align}
 \frac{\partial\ev{\varepsilon}_\Pi}{\partial\alpha_i} &= \frac{\idotsint \left(2\Psi\frac{\partial\Psi}{\partial\alpha_i}\varepsilon+\Psi^2\frac{\partial\varepsilon}{\partial\alpha_i}\right)\delta^{DN}R}{\idotsint \Psi^2 \delta^{DN}R} - \frac{\idotsint \Psi^2\varepsilon \delta^{DN}R}{\idotsint \Psi^2 \delta^{DN}R}\frac{\idotsint 2\Psi\frac{\partial\Psi}{\partial\alpha_i}\delta^{DN}R}{\idotsint \Psi^2 \delta^{DN}R} \nonumber\\
 &= \frac{\idotsint \left(2\Psi^2\frac{\partial\Psi}{\Psi\partial\alpha_i}\varepsilon+\Psi^2\frac{\partial\varepsilon}{\partial\alpha_i}\right)\delta^{DN}R}{\idotsint \Psi^2 \delta^{DN}R} - \frac{\idotsint \Psi^2\varepsilon \delta^{DN}R}{\idotsint \Psi^2 \delta^{DN}R}\frac{\idotsint 2\Psi^2\frac{\partial\Psi}{\Psi\partial\alpha_i}\delta^{DN}R}{\idotsint \Psi^2 \delta^{DN}R} \nonumber\\
 &= \idotsint \left(2\Pi\frac{\partial\ln\Psi}{\partial\alpha_i}\varepsilon+\Pi\frac{\partial\varepsilon}{\partial\alpha_i}\right)\delta^{DN}R - \idotsint \Pi\varepsilon \delta^{DN}R \idotsint 2\Pi\frac{\partial\ln\Psi}{\partial\alpha_i} \delta^{DN}R \nonumber\\
-&= 2\ev{\frac{\partial\ln\Psi}{\partial\alpha_i}\varepsilon}_\Pi-2\ev{\frac{\partial\ln\Psi}{\partial\alpha_i}}_\Pi\ev{\varepsilon}_\Pi+\ev{\frac{\partial\varepsilon}{\partial\alpha_i}}_\Pi. \nonumber
+&= 2\ev{\frac{\partial\ln\Psi}{\partial\alpha_i}\varepsilon}_\Pi-2\ev{\frac{\partial\ln\Psi}{\partial\alpha_i}}_\Pi\ev{\varepsilon}_\Pi+\ev{\frac{\partial\varepsilon}{\partial\alpha_i}}_\Pi. 
 \end{align}
 However the expected value of the variational derivative $\frac{\partial\varepsilon}{\partial\alpha_i}$ turns out to be zero,
 \begin{align}

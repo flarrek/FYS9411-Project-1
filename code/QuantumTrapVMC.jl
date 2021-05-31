@@ -4,9 +4,9 @@ using Distributed
 using Plots
 
 
-@everywhere struct QuantumTrap # is a struct for elliptical quantum trap systems.
+@everywhere struct QuantumTrap # is a struct for elliptical harmonic quantum trap systems.
     D::Int64 # is the dimension of the quantum trap.
-    N::Int64 # is the number of particles in the trap.
+    N::Int64 # is the number of particles in the quantum trap.
     a::Float64 # is the characteristic radius of the particles.
     λ::Float64 # is the elliptic parameter of the trap.
 end

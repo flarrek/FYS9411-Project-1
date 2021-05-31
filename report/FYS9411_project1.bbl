@@ -18,6 +18,12 @@ Daniel Heinesen, Gunnar Lange, and Aram Salihi.
 \newblock Project report in {FYS4411 – Computational Physics II}, University
   of Oslo, April 2018.
 
+\bibitem{PJ}
+Line~G. Pedersen and Trond-Wiggo Johansen.
+\newblock {Variational Monte Carlo} of {Bosonic} systems.
+\newblock Project report in {FYS4411 – Computational Physics II}, University
+  of Oslo, April 2018.
+
 \bibitem{IP}
 Giulio Isacchini and Giovanni Pederiva.
 \newblock {Variational Monte Carlo Study} of {Bosons} in a {Harmonic Oscillator
@@ -25,10 +31,10 @@ Giulio Isacchini and Giovanni Pederiva.
 \newblock Project report in {FYS4411 – Computational Physics II}, University
   of Oslo, 2016.
 
-\bibitem{PJ}
-Line~G. Pedersen and Trond-Wiggo Johansen.
-\newblock {Variational Monte Carlo} of {Bosonic} systems.
+\bibitem{KG}
+Håkon~E. Kristiansen and Stian Goplen.
+\newblock Project1 {Fys4411}.
 \newblock Project report in {FYS4411 – Computational Physics II}, University
-  of Oslo, April 2018.
+  of Oslo, March 2016.
 
 \end{thebibliography}

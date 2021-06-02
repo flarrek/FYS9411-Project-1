@@ -1,4 +1,4 @@
-This is pdfTeX, Version 3.14159265-2.6-1.40.21 (MiKTeX 21.1) (preloaded format=pdflatex 2021.2.11)  31 MAY 2021 12:05
+This is pdfTeX, Version 3.14159265-2.6-1.40.21 (MiKTeX 21.1) (preloaded format=pdflatex 2021.2.11)  1 JUN 2021 01:41
 entering extended mode
 **./FYS9411_project1.tex
 (FYS9411_project1.tex
@@ -298,8 +298,8 @@ Package amsmath Warning: Foreign command \atop;
 [7] [8] [9] [10] [11] (FYS9411_project1.aux) ) 
 Here is how much of TeX's memory you used:
  2968 strings out of 479618
- 39009 string characters out of 2865026
- 354516 words of memory out of 3000000
+ 39018 string characters out of 2865026
+ 351152 words of memory out of 3000000
  20130 multiletter control sequences out of 15000+200000
  417824 words of font info for 82 fonts, out of 3000000 for 9000
  1141 hyphenation exceptions out of 8191
@@ -332,12 +332,13 @@ AppData/Local/Programs/MiKTeX/fonts/type1/public/amsfonts/cm/cmsy5.pfb><C:/User
 s/jonas/AppData/Local/Programs/MiKTeX/fonts/type1/public/amsfonts/cm/cmsy7.pfb>
 <C:/Users/jonas/AppData/Local/Programs/MiKTeX/fonts/type1/public/amsfonts/cm/cm
 sy8.pfb><C:/Users/jonas/AppData/Local/Programs/MiKTeX/fonts/type1/public/amsfon
-ts/cm/cmti10.pfb><C:/Users/jonas/AppData/Local/Programs/MiKTeX/fonts/type1/publ
-ic/amsfonts/symbols/msbm10.pfb><C:/Users/jonas/AppData/Local/Programs/MiKTeX/fo
-nts/type1/public/amsfonts/symbols/msbm7.pfb>
-Output written on FYS9411_project1.pdf (11 pages, 343570 bytes).
+ts/cm/cmsy9.pfb><C:/Users/jonas/AppData/Local/Programs/MiKTeX/fonts/type1/publi
+c/amsfonts/cm/cmti10.pfb><C:/Users/jonas/AppData/Local/Programs/MiKTeX/fonts/ty
+pe1/public/amsfonts/symbols/msbm10.pfb><C:/Users/jonas/AppData/Local/Programs/M
+iKTeX/fonts/type1/public/amsfonts/symbols/msbm7.pfb>
+Output written on FYS9411_project1.pdf (11 pages, 354928 bytes).
 PDF statistics:
- 146 PDF objects out of 1000 (max. 8388607)
+ 150 PDF objects out of 1000 (max. 8388607)
  0 named destinations out of 1000 (max. 500000)
  1 words of extra memory for PDF output out of 10000 (max. 10000000)
 

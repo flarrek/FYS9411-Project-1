@@ -20,7 +20,7 @@
 [
 \maketitle
 \begin{abstract}
-Using the Julia language, the method of Variational Monte Carlo (VMC) was implemented for an elliptical harmonic trap system with $N$ bosons, both with and without interaction. 2 variational parameters were tuned using the gradient descent method to obtain an estimate of the ground state energy for traps with $N = 10$, $N = 50$ and $N = 100$ bosons. The results are benchmarked against \cite{SWL} and others, which all consider the same systems but implemented the VMC method in the C++ language and only vary 1 variational parameter. A comparison of the results from two different Monte Carlo sampling methods, as well as statistical refinement of the results, is presented. Importance sampling using Langevin "quantum drift" sampling is shown to be superior to brute-force "random step" sampling. Finally, the effect of boson interaction is discussed. 
+Using the Julia language, the method of Variational Monte Carlo (VMC) was implemented for a $D$-dimensional elliptical harmonic trap system with $N$ bosons, both with and without interaction. 2 variational parameters were tuned using the gradient descent method to obtain an estimate of the ground state energy for traps with $N = \{10,50,100\}$ bosons. The results are mainly benchmarked against \cite{SWL} which considered the same system but implemented the VMC method in C++ and only varies 1 variational parameter. A comparison of the results from two different Monte Carlo sampling methods, as well as statistical refinement of the results, is presented. Importance sampling using Langevin "quantum drift" sampling is shown to be superior to brute-force "random step" sampling. Finally, the effect of boson interaction is discussed. 
 \end{abstract}
 ]
 
@@ -30,7 +30,7 @@ As far as current human knowledge goes, Quantum Mechanics seems to be an excelle
 These difficulties with analytical analysis of quantum many-body systems encourages consideration of statistical and numerical methods. With the 
 currently available computational power in one's own office and the advent of collaborative development of code over the Internet, the field of Computational Physics has emerged as a third alternative to the traditional theoretical and experimental branches of research. Especially within Quantum Mechanics, where the theoreticists face the complexity of coupled differential systems as discussed above while the experimentalists deal with the frailty (and cost) of experiments tuned to the extreme parameters of the quantum world, computational research is in many cases better suited to the task. Through numerical simulations founded on statistical methods and analysis, large quantum mechanical systems can be explored with remarkable precision.
 
-In this report, the computational method of Variational Monte Carlo (VMC) on an elliptical harmonic trap system containing $N$ bosons is considered, and its implementation in Julia and subsequent results are reported and benchmarked against the previous work of \cite{SWL} on the same system. The system is itself interesting because ---noe om bosonisk samfall, noen referanser til forskning på systemet? --. 
+In this report, the computational method of Variational Monte Carlo (VMC) on an elliptical harmonic trap system containing $N$ bosons is considered, and its implementation in Julia and subsequent results are reported and benchmarked against the previous work of \cite{SWL} and others on the same system. The system is itself interesting because ---noe om bosonisk samfall, noen referanser til forskning på systemet?--- as demonstrated by the famous experiment of \cite{AEMWC}. VMC treatment of this system is discussed by \cite{DBG}, which in turn serves as the inspiration for the work in this report.
 
 Sections \ref{model} and \ref{theory} provide the concrete mathematical model for the system in consideration and the principles leading up to the VMC method. In section \ref{method} the actual Julia implementation as well as the scientific approach to the problem is described. Finally in section \ref{results} the results are presented, discussed and compared to the results of \cite{SWL}.
 
@@ -57,7 +57,7 @@ The parameters of the model are the mass $m$ and characteristic radius $a$ of th
 \end{align}
 The primed variables $\vec{r'}_i$, $\vec{\nabla'}_i$, $H'$ and $a'$, are now dimensionless and give the relative size to the corresponding unit. Omitting the primes, the Hamiltonian \eqref{dimHam} takes the form
 \begin{equation}\label{Ham}
-H[\vec{R}] = \sum\limits_i^N \frac{1}{2}\left( U[\vec{r}_i] - {\nabla}_i^2\right) + \sum\limits_i^N\sum\limits_{j > i}^N V'[\Delta{r}_{ij}]
+H[\vec{R}] = \sum\limits_i^N \frac{1}{2}\left( U[\vec{r}_i] - {\nabla}_i^2\right) + \sum\limits_i^N\sum\limits_{j > i}^N V[\Delta{r}_{ij}]
 \end{equation}
 with
 \begin{align}
@@ -65,7 +65,7 @@ U[\vec{r}_i] &= x_i^2+y_i^2+\lambda^2z_i^2, \label{U}\\
 V[\Delta{r}_{ij}] &=\begin{cases} \infty & \text{for $\Delta{r}_{ij} \leq a$} \\
 0 & \text{for $\Delta{r}_{ij} > a$} \end{cases}. \label{V}
 \end{align}
-In the rest of this report, dimensionless variables and equations are considered.
+In the rest of this report, dimensionless variables and equations are considered. Systems of $D = \{1,2,3\}$ dimensions with $N = \{1,10,50,100\}$ bosons are considered. The respective values $\lambda = 1$ and $\lambda = \sqrt{8}$ will be used to examine spherical and elliptical traps, while the values $a = 0$ and $a = 0.0043$ will be used to examine the non-interacting and interacting case. The last value of $a$ is the characteristic radius of Rb-87 given in \cite{DBG}, which corresponds to a trap strength $\omega \approx 400\text{ /s}$ if one uses the value $a_\text{Rb-87} \approx 5.82\text{ nm}$ found experimentally in \cite{BTGHV}.
 
 
 \subsection{Trial state}
@@ -115,7 +115,7 @@ Monte Carlo simulations in general are based on drawing a series of random sampl
 
 
 \subsection{The Metropolis algorithm}\label{Metropolis}
-The \textit{Metropolis algorithm} is an algorithm which makes it possible to sample from just some probability distribution with an unknown constant, and hence it is perfectly suited for Variational Monte Carlo. In terms of this report, the algorithm is based on constructing an ergodic Markov chain with $\Pi$ as its stationary distribution and letting this Markov chain run from some initial configuration, sampling the local energy $\varepsilon$ along the way. The longer the Markov chain is allowed to run, the more of the distribution $\Pi$ is fleshed out, and the better the resulting mean value of $\varepsilon$ matches its actual expected value $\ev{\varepsilon}_\Pi$. This follows from the \textit{Central Limit Theorem}, which indeed states that for $M$ Monte Carlo cycles (where one cycle is one step in the Markov chain), the expected value of $\varepsilon$ is approximated by the sample mean, hereafter denoted simply as the \textit{VMC energy} $E_\text{VMC}$:
+The \textit{Metropolis algorithm}, first introduced in \cite{MRRTT}, is an algorithm which makes it possible to sample from just some probability distribution with an unknown constant, and so it is perfectly suited for Variational Monte Carlo. In terms of this report, the algorithm is based on constructing an ergodic Markov chain with $\Pi$ as its stationary distribution and letting this Markov chain run from some initial configuration, sampling the local energy $\varepsilon$ along the way. The longer the Markov chain is allowed to run, the more of the distribution $\Pi$ is fleshed out, and the better the resulting mean value of $\varepsilon$ matches its actual expected value $\ev{\varepsilon}_\Pi$. This follows from the \textit{Central Limit Theorem}, which indeed states that for $M$ Monte Carlo cycles (where one cycle is one step in the Markov chain), the expected value of $\varepsilon$ is approximated by the sample mean, hereafter denoted simply as the \textit{VMC energy} $E_\text{VMC}$:
 \begin{equation}\label{estimate}
 \ev{\varepsilon}_\Pi \approx \mean\varepsilon = \frac{1}{M}\sum\limits_{m = 1}^M \varepsilon[\vec{R}_m] \equiv E_\text{VMC}.
 \end{equation}
@@ -266,7 +266,7 @@ for all sample indices $m$ from $1$ to $\frac{M}{2}$. The new sample set is half
 
 
 \section{Results}\label{results}
-|||presentasjon og diskusjon av resultatene, samt sammenligning med \cite{SWL}, \cite{GN}, \cite{HLS}, \cite{PJ}, \cite{IP} og \cite{KG}|||
+|||presentasjon og diskusjon av resultatene, samt sammenligning med \cite{SWL}, \cite{DBG} og \cite{DS}|||
 
 
 \section{Conclusion}

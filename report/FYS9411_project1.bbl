@@ -6,35 +6,34 @@
 \newblock Project report in {FYS4411 – Computational Physics II}, University
   of Oslo, April 2018.
 
-\bibitem{GN}
-Dorthea Gjestvang and Even~M. Nordhagen.
-\newblock Project 1.
-\newblock Project report in {FYS4411 – Computational Physics II}, University
-  of Oslo, May 2018.
+\bibitem{AEMWC}
+M.~Anderson, J.~Ensher, M.~Matthews, C.~Wieman, and E~Cornell.
+\newblock Observation of {Bose-Einstein Condensation} in a {Dilute Atomic
+  Vapor}.
+\newblock {\em Science}, 269(5221):198--201, July 1995.
 
-\bibitem{HLS}
-Daniel Heinesen, Gunnar Lange, and Aram Salihi.
-\newblock {Variational Monte Carlo}.
-\newblock Project report in {FYS4411 – Computational Physics II}, University
-  of Oslo, April 2018.
+\bibitem{DBG}
+J.~L. DuBois and H.~R. Glyde.
+\newblock {Bose-Einstein} condensation in trapped bosons: {A} variational monte
+  carlo analysis.
+\newblock {\em Physical Review A}, 63(2), Jan 2001.
 
-\bibitem{PJ}
-Line~G. Pedersen and Trond-Wiggo Johansen.
-\newblock {Variational Monte Carlo} of {Bosonic} systems.
-\newblock Project report in {FYS4411 – Computational Physics II}, University
-  of Oslo, April 2018.
+\bibitem{BTGHV}
+H.~M. J.~M. Boesten, C.~C. Tsai, J.~R. Gardner, D.~J. Heinzen, and B.~J.
+  Verhaar.
+\newblock Observation of a shape resonance in the collision of two cold
+  $^{87}\mathrm{Rb}$ atoms.
+\newblock {\em Physical Review A}, 55:636--640, Jan 1997.
 
-\bibitem{IP}
-Giulio Isacchini and Giovanni Pederiva.
-\newblock {Variational Monte Carlo Study} of {Bosons} in a {Harmonic Oscillator
-  Well}.
-\newblock Project report in {FYS4411 – Computational Physics II}, University
-  of Oslo, 2016.
+\bibitem{MRRTT}
+Nicholas Metropolis, Arianna~W. Rosenbluth, Marshall~N. Rosenbluth, Augusta~H.
+  Teller, and Edward Teller.
+\newblock Equation of {State Calculations} by {Fast Computing Machines}.
+\newblock {\em The Journal of Chemical Physics}, 21(6):1087--1092, 1953.
 
-\bibitem{KG}
-Håkon~E. Kristiansen and Stian Goplen.
-\newblock Project1 {Fys4411}.
-\newblock Project report in {FYS4411 – Computational Physics II}, University
-  of Oslo, March 2016.
+\bibitem{DS}
+F.~Dalfovo and S.~Stringari.
+\newblock Bosons in anisotropic traps: ground state and vortices.
+\newblock {\em Physical Review A}, 53(4):2477–2485, Apr 1996.
 
 \end{thebibliography}

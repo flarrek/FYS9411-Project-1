@@ -824,7 +824,7 @@ function find_VMC_energy(trap::QuantumTrap, Ms::Vector{Int64}=[10^4,10^6];
 end
 
 
-function compare_VMC_sampling(trap::QuantumTrap, Ms::Vector{Int64}=[10^e for e in 1:7];
+function compare_VMC_sampling(trap::QuantumTrap, Ms::Vector{Int64}=[10^e for e in 2:7];
         α::Float64=0.5, β::Float64=trap.λ,δs::Float64=√0.4)
     # compares the two VMC sampling methods by plotting their results against given numbers of Monte Carlo cycles.
 

@@ -1,6 +1,10 @@
 \documentclass[a4paper,8pt]{article}
 \usepackage[lmargin=20mm,rmargin=20mm,tmargin=20mm,bmargin=20mm]{geometry}
 \usepackage{multicol}
+
+\usepackage{graphicx}
+\usepackage{wrapfig}
+
 \usepackage{amsmath,amssymb}
 \usepackage{physics}
 \DeclareMathOperator{\mean}{mean}
@@ -8,7 +12,7 @@
 \DeclareMathOperator{\aucov}{aucov}
 
 
-\title{\small FYS9411 – Computational Physics II \\
+\title{\small FYS9411 -- Computational Physics II \\
 \Huge Variational Monte Carlo\\\huge on an Elliptical Harmonic Trap with $N$ Bosons}
 \author{\large Jonas Boym Flaten \\
 \small University of Oslo}
@@ -35,7 +39,9 @@ In this report, the computational method of Variational Monte Carlo (VMC) on an 
 Sections \ref{model} and \ref{theory} provide the concrete mathematical model for the system in consideration and the principles leading up to the VMC method. In section \ref{method} the actual Julia implementation as well as the scientific approach to the problem is described. Finally in section \ref{results} the results are presented, discussed and compared to the results of \cite{SWL}.
 
 
+
 \section{Model} \label{model}
+The model system considered in the project is declared in this chapter.
 
 \subsection{Quantum system}\label{system}
 The quantum system considered here is a $D$-dimensional quantum trap with an arbitrary number of identical bosons $N$. In position basis the system Hamiltonian is
@@ -82,7 +88,10 @@ f[\vec{r}_i,\vec{r}_j] &= f[\Delta{r}_{ij}] = \begin{cases} 0 & \text{for $\Delt
 Here $\epsilon$ is Euler's number and $a$ is the characteristic boson radius introduced in section \ref{model}, while $\alpha$ and $\beta$ are the variational parameters to tune when chasing the ground state energy.
 
 
+
 \section{Theory}\label{theory}
+The underlying theory of the project is presented in this chapter.
+
 
 \subsection{The variational method} \label{varmethod}
 The Variational Principle of Quantum Mechanics states that the ground state $E_\text{G}$ of any quantum system with Hamiltonian operator $\mathbf{H}$ is bounded from above by
@@ -243,7 +252,7 @@ for some small step size $\delta v$. This step size should be tuned so that it i
 Because of the finite step size $\delta v$ and convergence threshold $\delta g$, gradient descent variation as described here is only approximate anyway, so there is no need to run too many Monte Carlo cycles at each variational point during descent. Hence a large number of Monte Carlo cycles will only be run at the final, optimal variational point, and so gradient descent variation should both be faster and more accurate than range variation, especially when the optimal variational parameters $\alpha$ and $\beta$ are not known.
 
 
-\subsection{Block resampling}
+\subsection{Block resampling}\label{Bresampling}
 As described in section \ref{Metropolis}, the calculated sample mean bound $E_\text{VMC}$ converges towards the true energy bound $\ev{\varepsilon}_\Pi$ for a large number of Monte Carlo cycles $M$. However, the statistical error given in \eqref{error} is only correct if there is no correlation between the samples. The Metropolis algorithm presented here however, proposes to move only a single particle a short distance with each Monte Carlo cycle. Therefore two configurations following each other in the proposed Markov chain should be strongly correlated; indeed there should be correlation between whole chains of subsequent configuratins because the system needs several cycles to "get away" from any current configuration.
 
 A more formal way of measuring correlation in the samples of $\varepsilon$ is considering the \textit{sample autocovariance}
@@ -261,16 +270,67 @@ But this expression involves a double sum in the autocovariance term, which can 
 for all sample indices $m$ from $1$ to $\frac{M}{2}$. The new sample set is half the size of the original sample set, but both the sample mean and the statistical error turns out to be conserved through this "blocking" of the samples. The sample variance however will be different, and it can be shown that the transformation \eqref{blocking} corresponds to "shifting weight" from the autocovariance terms in \eqref{error2} to the variance term. By blocking multiple times this shifting continues until the samples are no longer correlated, at which point the statistical error formula \eqref{error2} reduces to the simple form in \eqref{error}. Continued blocking will eventually shift the error away from the variance term again when the number of samples approaches zero. However, the sample variance turns out to converge strongly towards its maximum and fluctuate around it for a while before declining. Hence blocking can simply be continued until the sample variance declines for the first time. The maximal value of the sample variance can then be used with equation \eqref{error} to provide a higher but much more correct estimate of the statistical error for the VMC energy $E_\text{VMC}$.
 
 
+
 \section{Method}\label{method}
-|||beskrivelse av kode og framgangsmåte på numeriske eksperimenter||
+As part of the project, a working VMC script was developed in the Julia language, implementing all the methods and formulas introduced in chapter \ref{theory}. The script is named \texttt{QuantumTrapVMC.jl} and can be accessed in the \texttt{code} folder at the GitHub page\footnote{https://github.com/flarrek/FYS9411-Project-1} of this project. The script uses a naming for all variables and parameters consistent with this report, and it is thorougly commented for easy examination. Its overarching structure is presented in section \ref{structure} of this chapter, as well as a description of the numerical optimalisation performed during development in section \ref{optimalisation}. Finally, section \ref{tuning} regards tuning of the algorithm parameters $\delta v$, $\delta g$ and $\delta s$. Firstly though, a brief introduction to the main characteristics of the Julia language is given in section \ref{Julia}.
+
+
+\subsection{The Julia language}\label{Julia}
+The Julia language is a fairly new dynamic programming language launched in 2012 and developed initially by computational scientists at the Massachussets Institute of Technology (MIT), but nowadays by people from all over the world. The goal of the creators was to create a modern high-performance language with ''the speed of C'' and the ''familiar mathematical notation of Matlab'' while being ''as usable for general programming as Python'' and ''as easy for statistics as R''.\cite{JuliaGoal}
+
+Julia differs from many other popular programming languages in the fact that it is not object-oriented. Instead the user is encouraged to implement polymorphic functions through Julia's \textit{Multiple Dispatch} system, which can then be called and compiled using the native read-eval-print-loop (REPL) on the command line or any supported integrated development environment (IDE). As a dynamic language Julia furthermore relies on garbage-collection (GC) and just-in-time-compilation (JIT), which is user-friendly but can result in slow computation if one is not implementing the algorithms optimally.
+
+At first glimpse, Julia code looks quite similar to Python, Matlab and R, and indeed has similar commands and features in many cases. One distinction however is that Julia supports Unicode, which allows the programmer to use Greek letters and much mathematical notation directly in the code. This is handy when implementing programs based on theoretical methods and formulas such as in this project.
+
+
+\subsection{Structure}\label{structure}
+The final Julia script \texttt{QuantumTrapVMC.jl} was written with the system \eqref{Ham} and the VMC theory described in chapter \ref{theory} in mind, and built for flexible usage with the Julia REPL.  The parametric values $D$, $N$, $a$ and $\lambda$ of the quantum harmonic trap are organised in \texttt{QuantumTrap} structs, which can be passed to the main function \texttt{find\_VMC\_energy} along with an array \texttt{Ms} of Monte Carlo cycle numbers to consider. Optional keyword arguments such as \texttt{variation} and \texttt{sampling} (as well as the related \texttt{$\delta$v}, \texttt{$\delta$g} and \texttt{$\delta$s}) can be passed as well to run VMC with a specific choice of the methods discussed in \ref{theory}. There are also keyword arguments \texttt{$\alpha$s} and \texttt{$\beta$s} passing specific values for the variational parameters to consider. For range variation, an array of values for both $\alpha$ and $\beta$ can be considered and plotted, while for gradient descent variation only one initial variational point should be passed. Finally, the keyword arguments \texttt{text\_output} and \texttt{plot\_output} determine what output the script should return to the user.
+
+The script is parallellised through the native Julia package \texttt{Distributed}, which sets up $T$ parallell processes on the computer. To this end, a separate function \texttt{simulate\_n\_sample} is declared and distributed to all the processes, hereafter referred to as ''worker threads''. Equipped with this function, the $T$ worker threads are the actual workhorses of the VMC computations, setting up individual copies of the quantum trap and running $C = \frac{M}{T}$ Monte Carlo cycles using the chosen methods. At each thread, the $N$ particles are scattered initially following a normal distribution.\footnote{An alternative scattering of the particles into an initial square lattice was also implemented and can be set through the keyword argument \texttt{scattering}, but it lead to the same results and is hence not considered futher in this report.} Sampled values as well as the number of rejected moves are then collected by the main thread, which proceeds to resample the data by blocking, as described in section \ref{Bresampling}. The main thread finally presents the results back to the user through the chosen text and plot output.
+
+The complementary function \texttt{compare\_VMC\_sampling} was implemented to allow comparison of convergence between the random step and quantum drift sampling methods from sections \ref{Metropolis} and \ref{quantumdrift}. It is called similarly to \texttt{find\_VMC\_energy}, except that the keyword argument \texttt{sampling} is obviously not specified, and it only allows one specific value for each of the variational parameters $\alpha$ and $\beta$.
+
+As already noted, the script is thoroughly commented, and furthermore assertions were added so that the script objects to invalid input and explains to the user what should be adjusted. Hopefully this makes the script fairly easy to use and examine on its own.
+
+
+
+\subsection{Optimalisation}\label{optimalisation}
+Thorough numerical optimalisation was performed during development of the Julia script. In this section, some of the computational aspects of Julia and the VMC theory presented in chapter \ref{theory} are discussed, as well as related optimalisation. Table \ref{optTimes} shows how various improvements to to the code resulted in a total speed-up of about ---.
+
+The most demanding computation of the VMC method presented here is the calculation of the local energy $\var{epsilon}$ at each Monte Carlo cycle, calculated with the formula \eqref{compLocalenergy}. One should strive to minimise the amount of times this computation is done. Consider as an example the case when a move has been rejected so that the particles stay in the same configuration as in the last cycle. Then there is no point in recalculating the local energy -- instead the sampled value from the last cycle should simply be copied. This was implemented in the script from the start. 
+
+Because the formula \eqref{compLocalenergy} involves a triple sum over the particle number $N$, great care should be taken to minimise the required calculations within the sum. Especially the norm calculations of the inter-particle distances $\Delta r_{ij}$ involved should be handled carefully. There are $N^2$ such distances at each cycle, a worst-case naive implementation would perform a total of $N^4$ norm calculations in the double loop and $2N^5$ norm calculations in the triple loop of \eqref{compLocalenergy} if calculated at each loop. A much better approach would be to store the $N^2$ values of $\Delta r_{ij}$ in a matrix and simply access the values in the loops. Then one could furthermore note that many of these values would not even have to be recalculated at each cycle -- because only one particle is moved at each cycle, indeed only the distances related to this particle need to be updated. Matrix storage like this was implemented for $\Delta r$ as a first optimalisation of the code as shown in table \ref{optTimes}. When handling matrices in any programming language, one should also keep in mind how matrices are stored in memory and cache. Julia uses the slightly counter-intuitive column-major storage, which means that matrices are stored column-wise in memory. Hence when looping through matrices in Julia, the inner loop should run through the first index of matrices for maximum speed. This is known as \textit{cache-friendly} looping, and was implemented as many places as possible in the script. This is why the relevant quantities are stored as \texttt{$\Delta$R[j,i]}$ = \Delta{r}_{ij}$ and so on. Later, matrix storage for the vector quantities $\vec{q}$ and $\vec{s}[\Delta r_{ij}] \equiv \vec{s}_{ij}$ was also implemented to a good speed-up. All storage is further described in the script comments.
+
+The formula \eqref{compLocalenergy} was initially implemented using native vectorised Julia code including index slice access to vectors and the dot product. However, contrary to some other programming languages such as Python, Julia actually vectorises loops automatically, and vectorised code often turns out to be slower. Rewriting the vectorised code to plain loops, a speed-up of --- was achieved as shown in table \ref{optTimes}. This turns out to be the greatest speed-up of all the optimalisation performed, and should be kept in mind for future Julia implementations.
+
+Of course, parallellisation of the script also lead to a good speed-up of computation. Interestingly, the optimal number of worker threads turned out to be one thread less than the total amount of available threads on the computer. This was the case for both computers used with this project. This makes some sense as there is also a main thread, and although the main thread does not perform as heavy computations as the $T$ worker threads, it would still interfere with the flow of the computations if one of the available threads were to run both the main process and a worker process simultaneously.
+
+\begin{table}
+\begin{tabular}{lcc}
+	description & computation time [s] & allocations \\
+    1 & 2 & 3 \\
+    4 & 5 & 6 \\
+\end{tabular}
+\caption{Yo for faen.}
+\label{optTimes}
+\end{table}
+
+
+\subsection{Tuning}\label{tuning}
+The VMC method presented in chapter \ref{theory} requires tuning with respect to the gradient descent step size and convergence threshold $\delta v$ and $\delta g$ as well as the sampling step size $\delta s$.
 
 
 \section{Results}\label{results}
-|||presentasjon og diskusjon av resultatene, samt sammenligning med \cite{SWL}, \cite{DBG} og \cite{DS}|||
+|||presentasjon og diskusjon av resultatene, samt sammenligning med \cite{SWL}, \cite{DBG} og \cite{DS}, samt kanskje \cite{NMPGHJP}||| Figur \ref{testfig}!
 
+\begin{figure}\label{testfig}
+\centering
+\includegraphics{figResampling.pdf}
+\caption{Test figure.}
+\end{figure}
 
 \section{Conclusion}
-|||oppsummering og læringsutbytte|||
+The script was optimised through ---, memory-handling and parallellisation, resulting in a total speed-up of about ---. As the Julia script was developed as a first-time experience with the language, there is sure to be many more optimalisations which could further increase the speed of calculations. That said however, Julia performance better than C++ has seldom been reported, and only in special cases.
 
 
 \end{multicols}
@@ -346,23 +406,23 @@ it follows that
 
 Then in total equation \eqref{Lap_Psi_1} takes the form
 \begin{align}
-\vec{\nabla}_i^2\Psi &= 2\alpha\left(2\alpha\Big(\vec{x}_i++\vec{y}_i+\beta\vec{z}_i\Big)^2-\Big(D+(\beta-1)\delta_{D,3}\Big)\right) \Psi \nonumber\\
+\vec{\nabla}_i^2\Psi &= 2\alpha\left(2\alpha\Big(\vec{x}_i+\vec{y}_i+\beta\vec{z}_i\Big)^2-\Big(D+(\beta-1)\delta_{D,3}\Big)\right) \Psi \nonumber\\
 &- 4\alpha\Big(\vec{x}_i+\vec{y}_i+\beta\vec{z}_i\Big) \cdot \sum\limits_{j \neq i}^N \left(\frac{a\Delta\vec{r}_{ij}}{\Delta{r}_{ij}^2(\Delta{r}_{ij}-a)}\right) \Psi \nonumber\\
 &+ \sum\limits_{j \neq i}^N \left(\frac{a(D-3)}{\Delta{r}_{ij}^2(\Delta{r}_{ij}-a)} + \sum\limits_{{k \neq i}\atop{k \neq j}}^N \frac{a^2 \Delta\vec{r}_{ij} \cdot \Delta\vec{r}_{ik}}{\Delta{r}_{ij}^2(\Delta{r}_{ij}-a) \Delta{r}_{ik}^2(\Delta{r}_{ik}-a)}\right) \Psi \nonumber\\
-\Longrightarrow \frac{\vec{\nabla}_i^2\Psi}{\Psi} &= 2\alpha\left(2\alpha\Big(\vec{x}_i++\vec{y}_i+\beta\vec{z}_i\Big)^2-\Big(D+(\beta-1)\delta_{D,3}\Big)\right) \nonumber\\
-&+ \sum\limits_{j \neq i}^N \frac{a(D-3) - 4\alpha\Big(\vec{x}_i++\vec{y}_i+\beta\vec{z}_i\Big) \cdot a\Delta\vec{r}_{ij}}{\Delta{r}_{ij}^2(\Delta{r}_{ij}-a)} \nonumber\\
+\Longrightarrow \frac{\vec{\nabla}_i^2\Psi}{\Psi} &= 2\alpha\left(2\alpha\Big(\vec{x}_i+\vec{y}_i+\beta\vec{z}_i\Big)^2-\Big(D+(\beta-1)\delta_{D,3}\Big)\right) \nonumber\\
+&+ \sum\limits_{j \neq i}^N \frac{a(D-3) - 4\alpha\Big(\vec{x}_i+\vec{y}_i+\beta\vec{z}_i\Big) \cdot a\Delta\vec{r}_{ij}}{\Delta{r}_{ij}^2(\Delta{r}_{ij}-a)} \nonumber\\
 &+ \sum\limits_{j \neq i}^N \sum\limits_{{k \neq i}\atop{k \neq j}}^N \frac{a^2 \Delta\vec{r}_{ij} \cdot \Delta\vec{r}_{ik}}{\Delta{r}_{ij}^2(\Delta{r}_{ij}-a) \Delta{r}_{ik}^2(\Delta{r}_{ik}-a)}
 \end{align}
 and by introducing the quantities
 \begin{align}
-\vec{q}[\vec{r}_i] &= -4\alpha\Big(\vec{x}_i++\vec{y}_i+\beta\vec{z}_i\Big), \label{q}\\
+\vec{q}[\vec{r}_i] &= -4\alpha\Big(\vec{x}_i+\vec{y}_i+\beta\vec{z}_i\Big), \label{q}\\
 d[\Delta{r}_{ij}] &= \Delta{r}_{ij}^2(\Delta{r}_{ij}-a), \label{d}\\
 \vec{s}[\Delta\vec{r}_{ij}] &= \frac{a\Delta\vec{r}_{ij}}{2d[\Delta{r}_{ij}]}, \label{s}
 \end{align}
 it follows that the total analytic expression for the local energy is
 \begin{align}
 \varepsilon[\vec{R}] &= \alpha N\Big(D+(\beta-1)\delta_{D,3}\Big) + \sum\limits_i^N \frac{1}{2}\left( U[\vec{r}_i] - \frac{1}{4}\vec{q}^2[\vec{r}_i] \right) \nonumber\\
-&- \sum\limits_i^N \sum\limits_{j \neq i}^N \left( \frac{a(D-3)}{2d[\Delta{r}_{ij}]} + \vec{q}[\vec{r}_i] \cdot \vec{s}[\Delta\vec{r}_{ij}] \right) - 2\sum\limits_i^N \sum\limits_{j \neq i}^N \sum\limits_{{k \neq i}\atop{k \neq j}}^N \vec{s}[\Delta\vec{r}_{ij}] \cdot \vec{s}[\Delta\vec{r}_{ik}] \label{anaLocalenergy}
+&- \sum\limits_i^N \sum\limits_{j \neq i}^N \left( \frac{a(D-3)}{2d[\Delta{r}_{ij}]} + \vec{q}[\vec{r}_i] \cdot \vec{s}[\Delta\vec{r}_{ij}] \right) - 2\sum\limits_i^N \sum\limits_{j \neq i}^N \sum\limits_{{k \neq i}\atop{k \neq j}}^N \vec{s}[\Delta\vec{r}_{ij}] \cdot \vec{s}[\Delta\vec{r}_{ik}] \label{compLocalenergy}
 \end{align}
 as long as all $\Delta r_{ij} > a$. This last restriction is why the hard-sphere interaction energy $V$ is omitted altogether; for configurations in which $\Delta r_{ij} \leq a$ for some $i$ and $j$, the trial wavefunction $\Psi$ in \eqref{trialstate} is defined to be zero (because $f[\Delta r_{ij}]$ is zero), which in turn means that the Metropolis algorithm will never sample such configurations, and so the fact that the local energy would be infinite for such configurations (because $V$ is infinite) is not a problem.
 
@@ -371,12 +431,12 @@ as long as all $\Delta r_{ij} > a$. This last restriction is why the hard-sphere
 Equation \eqref{quantumdrift} defines the quantum drift of the system. From the formulas \eqref{grad_G} and \eqref{grad_F} of section \ref{derLocalenergy} it follows that
 \begin{align}
 \vec{\nabla}_i\Psi &= \vec{\nabla}_i G F + G \vec{\nabla}_i F \nonumber\\
-&= -2\alpha\Big(\vec{x}_i++\vec{y}_i+\beta\vec{z}_i\Big)\Psi + \sum\limits_{j \neq i}^N \left(\frac{a\Delta\vec{r}_{ij}}{\Delta{r}_{ij}^2(\Delta{r}_{ij}-a)}\right) \Psi \nonumber\\
-\Longrightarrow \frac{\vec{\nabla}_i\Psi}{\Psi} &= -2\alpha\Big(\vec{x}_i++\vec{y}_i+\beta\vec{z}_i\Big) + \sum\limits_{j \neq i}^N \left(\frac{a\Delta\vec{r}_{ij}}{\Delta{r}_{ij}^2(\Delta{r}_{ij}-a)}\right),
+&= -2\alpha\Big(\vec{x}_i+\vec{y}_i+\beta\vec{z}_i\Big)\Psi + \sum\limits_{j \neq i}^N \left(\frac{a\Delta\vec{r}_{ij}}{\Delta{r}_{ij}^2(\Delta{r}_{ij}-a)}\right) \Psi \nonumber\\
+\Longrightarrow \frac{\vec{\nabla}_i\Psi}{\Psi} &= -2\alpha\Big(\vec{x}_i+\vec{y}_i+\beta\vec{z}_i\Big) + \sum\limits_{j \neq i}^N \left(\frac{a\Delta\vec{r}_{ij}}{\Delta{r}_{ij}^2(\Delta{r}_{ij}-a)}\right),
 \end{align}
 which means that the analytic expression for the quantum drift becomes
 \begin{equation}
-\vec{Q}_i[\vec{R}] = \vec{q}[\vec{r}_i] + 4\sum\limits_{j \neq i}^N \vec{s}[\Delta\vec{r}_{ij}].
+\vec{Q}_i[\vec{R}] = \vec{q}[\vec{r}_i] + 4\sum\limits_{j \neq i}^N \vec{s}[\Delta\vec{r}_{ij}]. \label{compQD}
 \end{equation}
 with the quantities introduced in \eqref{q}–\eqref{s}.
 
@@ -404,16 +464,15 @@ so the variational gradient reduces to
 \end{equation}
 The expected values in this expression can be estimated by sampling the quantities
 \begin{align}
-\frac{\partial\ln\Psi}{\partial\alpha}[\vec{R}] &= -\sum\limits_i^N \left(x_i^2 + y_i^2 + \beta z_i^2\right), \\
-\frac{\partial\ln\Psi}{\partial\beta}[\vec{R}] &= -\sum\limits_i^N \alpha z_i^2,
+\frac{\partial\ln\Psi}{\partial\alpha}[\vec{R}] &= -\sum\limits_i^N \left(x_i^2 + y_i^2 + \beta z_i^2\right), \label{compAlphaGrad}\\
+\frac{\partial\ln\Psi}{\partial\beta}[\vec{R}] &= -\sum\limits_i^N \alpha z_i^2, \label{compBetaGrad}
 \end{align}
 as well as their product with the local energy $\varepsilon$, at each Monte Carlo cycle and then calculate their average when the averages of $\ev{\varepsilon}$ and $\ev{\varepsilon^2}$ are calculated.
 
 
 \newpage
-\section{Code}
-
-|||Julia-kode|||
+\section{Output}
+Some of the output from the Julia script developed for the project is included here for reference. The rest can be found in the folder \texttt{results} on GitHub\footnote{\texttt{https://github.com/flarrek/FYS9411-Project-1}}.
 
 
 \end{document}

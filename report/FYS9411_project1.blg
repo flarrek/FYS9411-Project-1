@@ -5,44 +5,47 @@ Reallocating 'name_of_file' (item size: 1) to 6 items.
 The style file: unsrt.bst
 Reallocating 'name_of_file' (item size: 1) to 17 items.
 Database file #1: FYS9411_project1.bib
-You've used 6 entries,
+Warning--entry type for "JuliaGoal" isn't style-file defined
+--line 82 of file FYS9411_project1.bib
+You've used 8 entries,
             1791 wiz_defined-function locations,
-            495 strings with 4623 characters,
-and the built_in function-call counts, 1438 in all, are:
-= -- 124
-> -- 75
+            509 strings with 5028 characters,
+and the built_in function-call counts, 1808 in all, are:
+= -- 148
+> -- 106
 < -- 0
-+ -- 27
-- -- 21
-* -- 124
-:= -- 245
-add.period$ -- 18
-call.type$ -- 6
-change.case$ -- 7
++ -- 38
+- -- 30
+* -- 152
+:= -- 310
+add.period$ -- 24
+call.type$ -- 8
+change.case$ -- 9
 chr.to.int$ -- 0
-cite$ -- 6
-duplicate$ -- 50
-empty$ -- 129
-format.name$ -- 21
-if$ -- 300
+cite$ -- 8
+duplicate$ -- 63
+empty$ -- 162
+format.name$ -- 30
+if$ -- 378
 int.to.chr$ -- 0
-int.to.str$ -- 6
-missing$ -- 5
-newline$ -- 33
-num.names$ -- 6
-pop$ -- 7
+int.to.str$ -- 8
+missing$ -- 6
+newline$ -- 43
+num.names$ -- 8
+pop$ -- 15
 preamble$ -- 1
 purify$ -- 0
 quote$ -- 0
-skip$ -- 20
+skip$ -- 27
 stack$ -- 0
 substring$ -- 114
-swap$ -- 5
+swap$ -- 7
 text.length$ -- 0
 text.prefix$ -- 0
 top$ -- 0
 type$ -- 0
 warning$ -- 0
-while$ -- 13
-width$ -- 7
-write$ -- 68
+while$ -- 15
+width$ -- 9
+write$ -- 89
+(There was 1 warning)

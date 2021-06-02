@@ -1,0 +1,386 @@
+<!DOCTYPE html>
+<!-- saved from url=(0060)file:///C:/Users/Jonas/AppData/Local/Temp/jl_ej9utHteWu.html -->
+<html><head><meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+        <title>Plots.jl</title>
+        
+        <script src="./3D10i_sampling_files/plotly-1.57.1.min.js.last ned"></script><style id="plotly.js-style-global"></style>
+    <style id="plotly.js-style-modebar-bf7a2c"></style></head>
+    <body>
+            <div id="899c68a5-db97-4ffc-a8ed-2a5040d6c604" style="width:600px;height:400px;" class="js-plotly-plot"><div class="plot-container plotly"><div class="user-select-none svg-container" style="position: relative; width: 600px; height: 400px;"><svg class="main-svg" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" width="600" height="400" style="background: rgb(255, 255, 255);"><defs id="defs-bf7a2c"><g class="clips"><clippath id="clipbf7a2cxyplot" class="plotclip"><rect width="523.5148731408574" height="311.6633858267717"></rect></clippath><clippath class="axesclip" id="clipbf7a2cx"><rect x="72.54811898512686" y="0" width="523.5148731408574" height="400"></rect></clippath><clippath class="axesclip" id="clipbf7a2cy"><rect x="0" y="41.04330708661415" width="600" height="311.6633858267717"></rect></clippath><clippath class="axesclip" id="clipbf7a2cxy"><rect x="72.54811898512686" y="41.04330708661415" width="523.5148731408574" height="311.6633858267717"></rect></clippath></g><g class="gradients"></g></defs><g class="bglayer"></g><g class="draglayer cursor-crosshair"><g class="xy"><rect class="nsewdrag drag" data-subplot="xy" x="72.54811898512686" y="41.04330708661415" width="523.5148731408574" height="311.6633858267717" style="fill: transparent; stroke-width: 0; pointer-events: all;"></rect><rect class="nwdrag drag cursor-nw-resize" data-subplot="xy" x="52.54811898512686" y="21.04330708661415" width="20" height="20" style="fill: transparent; stroke-width: 0; pointer-events: all;"></rect><rect class="nedrag drag cursor-ne-resize" data-subplot="xy" x="596.0629921259842" y="21.04330708661415" width="20" height="20" style="fill: transparent; stroke-width: 0; pointer-events: all;"></rect><rect class="swdrag drag cursor-sw-resize" data-subplot="xy" x="52.54811898512686" y="352.70669291338584" width="20" height="20" style="fill: transparent; stroke-width: 0; pointer-events: all;"></rect><rect class="sedrag drag cursor-se-resize" data-subplot="xy" x="596.0629921259842" y="352.70669291338584" width="20" height="20" style="fill: transparent; stroke-width: 0; pointer-events: all;"></rect><rect class="ewdrag drag cursor-ew-resize" data-subplot="xy" x="124.8996062992126" y="353.20669291338584" width="418.81189851268596" height="20" style="fill: transparent; stroke-width: 0; pointer-events: all;"></rect><rect class="wdrag drag cursor-w-resize" data-subplot="xy" x="72.54811898512686" y="353.20669291338584" width="52.351487314085745" height="20" style="fill: transparent; stroke-width: 0; pointer-events: all;"></rect><rect class="edrag drag cursor-e-resize" data-subplot="xy" x="543.7115048118985" y="353.20669291338584" width="52.351487314085745" height="20" style="fill: transparent; stroke-width: 0; pointer-events: all;"></rect><rect class="nsdrag drag cursor-ns-resize" data-subplot="xy" x="52.04811898512686" y="72.20964566929132" width="20" height="249.33070866141736" style="fill: transparent; stroke-width: 0; pointer-events: all;"></rect><rect class="sdrag drag cursor-s-resize" data-subplot="xy" x="52.04811898512686" y="321.5403543307087" width="20" height="31.16633858267717" style="fill: transparent; stroke-width: 0; pointer-events: all;"></rect><rect class="ndrag drag cursor-n-resize" data-subplot="xy" x="52.04811898512686" y="41.04330708661415" width="20" height="31.16633858267717" style="fill: transparent; stroke-width: 0; pointer-events: all;"></rect></g></g><g class="layer-below"><g class="imagelayer"></g><g class="shapelayer"></g></g><g class="cartesianlayer"><g class="subplot xy"><g class="layer-subplot"><g class="shapelayer"></g><g class="imagelayer"></g></g><g class="gridlayer"><g class="x"><path class="xgrid crisp" transform="translate(89.55811898512687,0)" d="M0,41.04330708661415v311.6633858267717" style="stroke: rgb(0, 0, 0); stroke-opacity: 0.1; stroke-width: 1px;"></path><path class="xgrid crisp" transform="translate(187.89811898512687,0)" d="M0,41.04330708661415v311.6633858267717" style="stroke: rgb(0, 0, 0); stroke-opacity: 0.1; stroke-width: 1px;"></path><path class="xgrid crisp" transform="translate(286.22811898512686,0)" d="M0,41.04330708661415v311.6633858267717" style="stroke: rgb(0, 0, 0); stroke-opacity: 0.1; stroke-width: 1px;"></path><path class="xgrid crisp" transform="translate(384.56811898512683,0)" d="M0,41.04330708661415v311.6633858267717" style="stroke: rgb(0, 0, 0); stroke-opacity: 0.1; stroke-width: 1px;"></path><path class="xgrid crisp" transform="translate(482.90811898512686,0)" d="M0,41.04330708661415v311.6633858267717" style="stroke: rgb(0, 0, 0); stroke-opacity: 0.1; stroke-width: 1px;"></path><path class="xgrid crisp" transform="translate(581.2481189851269,0)" d="M0,41.04330708661415v311.6633858267717" style="stroke: rgb(0, 0, 0); stroke-opacity: 0.1; stroke-width: 1px;"></path></g><g class="y"><path class="ygrid crisp" transform="translate(0,308.3433070866142)" d="M72.54811898512686,0h523.5148731408574" style="stroke: rgb(0, 0, 0); stroke-opacity: 0.1; stroke-width: 1px;"></path><path class="ygrid crisp" transform="translate(0,227.81330708661415)" d="M72.54811898512686,0h523.5148731408574" style="stroke: rgb(0, 0, 0); stroke-opacity: 0.1; stroke-width: 1px;"></path><path class="ygrid crisp" transform="translate(0,147.29330708661416)" d="M72.54811898512686,0h523.5148731408574" style="stroke: rgb(0, 0, 0); stroke-opacity: 0.1; stroke-width: 1px;"></path><path class="ygrid crisp" transform="translate(0,66.77330708661415)" d="M72.54811898512686,0h523.5148731408574" style="stroke: rgb(0, 0, 0); stroke-opacity: 0.1; stroke-width: 1px;"></path></g></g><g class="zerolinelayer"></g><path class="xlines-below"></path><path class="ylines-below"></path><g class="overlines-below"></g><g class="xaxislayer-below"></g><g class="yaxislayer-below"></g><g class="overaxes-below"></g><g class="plot" transform="translate(72.54811898512686, 41.04330708661415)" clip-path="url(&#39;#clipbf7a2cxyplot&#39;)"><g class="scatterlayer mlayer"><g class="trace scatter trace286064" style="stroke-miterlimit: 2;"><g class="fills"><g><path class="js-fill" d="M14.82,244089.71L14.82,244089.71L14.82,302.84L114.83,163.89L213.66,93.36L312.02,71.32L410.36,64.13L508.7,63.08L508.7,61.88L312.02,58.99L213.66,61.98L114.83,85.59L14.82,202.93" style="fill: rgb(74, 168, 136); fill-opacity: 0.5; stroke-width: 0;"></path></g></g><g class="errorbars"></g><g class="lines"><path class="js-line" d="M14.82,302.84L114.83,163.89L213.66,93.36L312.02,71.32L410.36,64.13L508.7,63.08L508.7,61.88L312.02,58.99L213.66,61.98L114.83,85.59L14.82,202.93" style="vector-effect: non-scaling-stroke; fill: none; stroke: rgb(74, 168, 136); stroke-opacity: 1; stroke-width: 0px; opacity: 1;"></path></g><g class="points"></g><g class="text"></g></g><g class="trace scatter tracea39cd4" style="stroke-miterlimit: 2; opacity: 1;"><g class="fills"></g><g class="errorbars"></g><g class="lines"><path class="js-line" d="M14.82,252.88L114.83,124.74L213.66,77.67L312.02,65.15L410.36,62.22L508.7,62.48" style="vector-effect: non-scaling-stroke; fill: none; stroke: rgb(74, 168, 136); stroke-opacity: 1; stroke-width: 2px; opacity: 1;"></path></g><g class="points"></g><g class="text"></g></g><g class="trace scatter traceb92309" style="stroke-miterlimit: 2;"><g class="fills"><g><path class="js-fill" d="M14.82,244089.71L14.82,244089.71L14.82,162.4L114.83,122.34L213.66,63.97L312.02,66.97L410.36,63.19L508.7,62.13L410.36,61.08L312.02,60.78L213.66,42.93L114.83,78.59L14.82,8.82" style="fill: rgb(170, 72, 136); fill-opacity: 0.5; stroke-width: 0;"></path></g></g><g class="errorbars"></g><g class="lines"><path class="js-line" d="M14.82,162.4L114.83,122.34L213.66,63.97L312.02,66.97L410.36,63.19L508.7,62.13L410.36,61.08L312.02,60.78L213.66,42.93L114.83,78.59L14.82,8.82" style="vector-effect: non-scaling-stroke; fill: none; stroke: rgb(170, 72, 136); stroke-opacity: 1; stroke-width: 0px; opacity: 1;"></path></g><g class="points"></g><g class="text"></g></g><g class="trace scatter trace2ddb90" style="stroke-miterlimit: 2; opacity: 1;"><g class="fills"></g><g class="errorbars"></g><g class="lines"><path class="js-line" d="M14.82,85.61L114.83,100.47L213.66,53.45L312.02,63.88L410.36,62.14L508.7,62.49" style="vector-effect: non-scaling-stroke; fill: none; stroke: rgb(170, 72, 136); stroke-opacity: 1; stroke-width: 2px; opacity: 1;"></path></g><g class="points"></g><g class="text"></g></g><g class="trace scatter trace2ae18e" style="stroke-miterlimit: 2; opacity: 1;"><g class="fills"></g><g class="errorbars"></g><g class="lines"><path class="js-line" d="M14.82,62.49L508.7,62.49" style="vector-effect: non-scaling-stroke; fill: none; stroke: rgb(253, 206, 11); stroke-opacity: 1; stroke-width: 2px; opacity: 1; stroke-dasharray: 9px, 9px;"></path></g><g class="points"></g><g class="text"></g></g></g></g><g class="overplot"></g><path class="xlines-above crisp" d="M71.54811898512686,353.20669291338584H596.0629921259842" style="fill: none; stroke-width: 1px; stroke: rgb(0, 0, 0); stroke-opacity: 1;"></path><path class="ylines-above crisp" d="M72.04811898512686,41.04330708661415V352.70669291338584" style="fill: none; stroke-width: 1px; stroke: rgb(0, 0, 0); stroke-opacity: 1;"></path><g class="overlines-above"></g><g class="xaxislayer-above"><path class="xtick ticks crisp" d="M0,352.70669291338584v-5" transform="translate(89.55811898512687,0)" style="stroke: rgb(0, 0, 0); stroke-opacity: 1; stroke-width: 1px;"></path><path class="xtick ticks crisp" d="M0,352.70669291338584v-5" transform="translate(187.89811898512687,0)" style="stroke: rgb(0, 0, 0); stroke-opacity: 1; stroke-width: 1px;"></path><path class="xtick ticks crisp" d="M0,352.70669291338584v-5" transform="translate(286.22811898512686,0)" style="stroke: rgb(0, 0, 0); stroke-opacity: 1; stroke-width: 1px;"></path><path class="xtick ticks crisp" d="M0,352.70669291338584v-5" transform="translate(384.56811898512683,0)" style="stroke: rgb(0, 0, 0); stroke-opacity: 1; stroke-width: 1px;"></path><path class="xtick ticks crisp" d="M0,352.70669291338584v-5" transform="translate(482.90811898512686,0)" style="stroke: rgb(0, 0, 0); stroke-opacity: 1; stroke-width: 1px;"></path><path class="xtick ticks crisp" d="M0,352.70669291338584v-5" transform="translate(581.2481189851269,0)" style="stroke: rgb(0, 0, 0); stroke-opacity: 1; stroke-width: 1px;"></path><g class="xtick"><text text-anchor="middle" x="0" y="366.9066929133858" data-unformatted="10&lt;sup&gt;2&lt;/sup&gt;" data-math="N" transform="translate(89.55811898512687,0)" style="font-family: sans-serif; font-size: 11px; fill: rgb(0, 0, 0); fill-opacity: 1; white-space: pre;">10​<tspan style="font-size:70%" dy="-0.6em">2</tspan><tspan dy="0.42em">​</tspan></text></g><g class="xtick"><text text-anchor="middle" x="0" y="366.9066929133858" data-unformatted="10&lt;sup&gt;3&lt;/sup&gt;" data-math="N" transform="translate(187.89811898512687,0)" style="font-family: sans-serif; font-size: 11px; fill: rgb(0, 0, 0); fill-opacity: 1; white-space: pre;">10​<tspan style="font-size:70%" dy="-0.6em">3</tspan><tspan dy="0.42em">​</tspan></text></g><g class="xtick"><text text-anchor="middle" x="0" y="366.9066929133858" data-unformatted="10&lt;sup&gt;4&lt;/sup&gt;" data-math="N" transform="translate(286.22811898512686,0)" style="font-family: sans-serif; font-size: 11px; fill: rgb(0, 0, 0); fill-opacity: 1; white-space: pre;">10​<tspan style="font-size:70%" dy="-0.6em">4</tspan><tspan dy="0.42em">​</tspan></text></g><g class="xtick"><text text-anchor="middle" x="0" y="366.9066929133858" data-unformatted="10&lt;sup&gt;5&lt;/sup&gt;" data-math="N" transform="translate(384.56811898512683,0)" style="font-family: sans-serif; font-size: 11px; fill: rgb(0, 0, 0); fill-opacity: 1; white-space: pre;">10​<tspan style="font-size:70%" dy="-0.6em">5</tspan><tspan dy="0.42em">​</tspan></text></g><g class="xtick"><text text-anchor="middle" x="0" y="366.9066929133858" data-unformatted="10&lt;sup&gt;6&lt;/sup&gt;" data-math="N" transform="translate(482.90811898512686,0)" style="font-family: sans-serif; font-size: 11px; fill: rgb(0, 0, 0); fill-opacity: 1; white-space: pre;">10​<tspan style="font-size:70%" dy="-0.6em">6</tspan><tspan dy="0.42em">​</tspan></text></g><g class="xtick"><text text-anchor="middle" x="0" y="366.9066929133858" data-unformatted="10&lt;sup&gt;7&lt;/sup&gt;" data-math="N" transform="translate(581.2481189851269,0)" style="font-family: sans-serif; font-size: 11px; fill: rgb(0, 0, 0); fill-opacity: 1; white-space: pre;">10​<tspan style="font-size:70%" dy="-0.6em">7</tspan><tspan dy="0.42em">​</tspan></text></g></g><g class="yaxislayer-above"><path class="ytick ticks crisp" d="M72.54811898512686,0h5" transform="translate(0,308.3433070866142)" style="stroke: rgb(0, 0, 0); stroke-opacity: 1; stroke-width: 1px;"></path><path class="ytick ticks crisp" d="M72.54811898512686,0h5" transform="translate(0,227.81330708661415)" style="stroke: rgb(0, 0, 0); stroke-opacity: 1; stroke-width: 1px;"></path><path class="ytick ticks crisp" d="M72.54811898512686,0h5" transform="translate(0,147.29330708661416)" style="stroke: rgb(0, 0, 0); stroke-opacity: 1; stroke-width: 1px;"></path><path class="ytick ticks crisp" d="M72.54811898512686,0h5" transform="translate(0,66.77330708661415)" style="stroke: rgb(0, 0, 0); stroke-opacity: 1; stroke-width: 1px;"></path><g class="ytick"><text text-anchor="end" x="69.34811898512686" y="3.8499999999999996" data-unformatted="15.140" data-math="N" transform="translate(0,308.3433070866142)" style="font-family: sans-serif; font-size: 11px; fill: rgb(0, 0, 0); fill-opacity: 1; white-space: pre;">15.140</text></g><g class="ytick"><text text-anchor="end" x="69.34811898512686" y="3.8499999999999996" data-unformatted="15.145" data-math="N" transform="translate(0,227.81330708661415)" style="font-family: sans-serif; font-size: 11px; fill: rgb(0, 0, 0); fill-opacity: 1; white-space: pre;">15.145</text></g><g class="ytick"><text text-anchor="end" x="69.34811898512686" y="3.8499999999999996" data-unformatted="15.150" data-math="N" transform="translate(0,147.29330708661416)" style="font-family: sans-serif; font-size: 11px; fill: rgb(0, 0, 0); fill-opacity: 1; white-space: pre;">15.150</text></g><g class="ytick"><text text-anchor="end" x="69.34811898512686" y="3.8499999999999996" data-unformatted="15.155" data-math="N" transform="translate(0,66.77330708661415)" style="font-family: sans-serif; font-size: 11px; fill: rgb(0, 0, 0); fill-opacity: 1; white-space: pre;">15.155</text></g></g><g class="overaxes-above"></g></g></g><g class="polarlayer"></g><g class="ternarylayer"></g><g class="geolayer"></g><g class="funnelarealayer"></g><g class="pielayer"></g><g class="treemaplayer"></g><g class="sunburstlayer"></g><g class="glimages"></g></svg><div class="gl-container"></div><svg class="main-svg" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" width="600" height="400"><defs id="topdefs-bf7a2c"><g class="clips"></g><clippath id="legendbf7a2c"><rect width="157" height="67" x="1" y="1"></rect></clippath></defs><g class="indicatorlayer"></g><g class="layer-above"><g class="imagelayer"></g><g class="shapelayer"></g></g><g class="infolayer"><g class="legend" pointer-events="all" transform="translate(441, 285.79999999999995)"><rect class="bg" shape-rendering="crispEdges" style="stroke: rgb(0, 0, 0); stroke-opacity: 1; fill: rgb(255, 255, 255); fill-opacity: 1; stroke-width: 1px;" width="158" height="68" x="0.5" y="0.5"></rect><g class="scrollbox" transform="translate(0, 0)" clip-path="url(&#39;#legendbf7a2c&#39;)"><g class="groups"><g class="traces" transform="translate(1, 15.5)" style="opacity: 1;"><text class="legendtext" text-anchor="start" x="40" y="4.29" data-unformatted="random step sampling" data-math="N" style="font-family: sans-serif; font-size: 11px; fill: rgb(0, 0, 0); fill-opacity: 1; white-space: pre;">random step sampling</text><g class="layers" style="opacity: 1;"><g class="legendfill"></g><g class="legendlines"><path class="js-line" d="M5,0h30" style="fill: none; stroke: rgb(74, 168, 136); stroke-opacity: 1; stroke-width: 2px;"></path></g><g class="legendsymbols"><g class="legendpoints"></g></g></g><rect class="legendtoggle" pointer-events="all" x="0" y="-9.5" width="151.28125" height="19" style="cursor: pointer; fill: rgb(0, 0, 0); fill-opacity: 0;"></rect></g><g class="traces" transform="translate(1, 34.5)" style="opacity: 1;"><text class="legendtext" text-anchor="start" x="40" y="4.29" data-unformatted="quantum drift sampling" data-math="N" style="font-family: sans-serif; font-size: 11px; fill: rgb(0, 0, 0); fill-opacity: 1; white-space: pre;">quantum drift sampling</text><g class="layers" style="opacity: 1;"><g class="legendfill"></g><g class="legendlines"><path class="js-line" d="M5,0h30" style="fill: none; stroke: rgb(170, 72, 136); stroke-opacity: 1; stroke-width: 2px;"></path></g><g class="legendsymbols"><g class="legendpoints"></g></g></g><rect class="legendtoggle" pointer-events="all" x="0" y="-9.5" width="151.28125" height="19" style="cursor: pointer; fill: rgb(0, 0, 0); fill-opacity: 0;"></rect></g><g class="traces" transform="translate(1, 53.5)" style="opacity: 1;"><text class="legendtext" text-anchor="start" x="40" y="4.29" data-unformatted="reference energy" data-math="N" style="font-family: sans-serif; font-size: 11px; fill: rgb(0, 0, 0); fill-opacity: 1; white-space: pre;">reference energy</text><g class="layers" style="opacity: 1;"><g class="legendfill"></g><g class="legendlines"><path class="js-line" d="M5,0h30" style="fill: none; stroke: rgb(253, 206, 11); stroke-opacity: 1; stroke-dasharray: 9px, 9px; stroke-width: 2px;"></path></g><g class="legendsymbols"><g class="legendpoints"></g></g></g><rect class="legendtoggle" pointer-events="all" x="0" y="-9.5" width="151.28125" height="19" style="cursor: pointer; fill: rgb(0, 0, 0); fill-opacity: 0;"></rect></g></g></g><rect class="scrollbar" rx="20" ry="3" width="0" height="0" style="fill: rgb(128, 139, 164); fill-opacity: 1;" x="0" y="0"></rect></g><g class="g-gtitle"></g><g class="g-xtitle" transform="translate(0,-10.706692913385837)"><text class="xtitle" x="334.30555555555554" y="407.70669291338584" text-anchor="middle" data-unformatted="Monte Carlo cycles" data-math="N" style="font-family: sans-serif; font-size: 15px; fill: rgb(0, 0, 0); opacity: 1; font-weight: normal; white-space: pre;">Monte Carlo cycles</text></g><g class="g-ytitle" transform="translate(-1.8447265625,0)"><text class="ytitle" transform="rotate(-90,32.54811898512686,196.875)" x="32.54811898512686" y="196.875" text-anchor="middle" data-unformatted="energy [ħω]" data-math="N" style="font-family: sans-serif; font-size: 15px; fill: rgb(0, 0, 0); opacity: 1; font-weight: normal; white-space: pre;">energy [ħω]</text></g><g class="annotation" data-index="0" style="opacity: 1;"><g class="annotation-text-g" transform="rotate(0,334.30555555555554,59.000000000000014)"><g class="cursor-pointer" transform="translate(99, 20)"><rect class="bg" x="0.5" y="0.5" width="469" height="77" style="stroke-width: 1px; stroke: rgb(0, 0, 0); stroke-opacity: 0; fill: rgb(0, 0, 0); fill-opacity: 0;"></rect><text class="annotation-text" text-anchor="middle" data-unformatted="Comparison of VMC sampling for a 3D quantum trap&lt;br&gt;(D = 3 / N = 10 / a = 0.0043 / λ = 1.0 / δs = 0.6325)&lt;br&gt;α = 0.4975 / β = 1.0003" data-math="N" x="234.890625" y="20" style="font-family: sans-serif; font-size: 20px; fill: rgb(0, 0, 0); fill-opacity: 1; white-space: pre;"><tspan class="line" dy="0em" x="234.890625" y="20">Comparison of VMC sampling for a 3D quantum trap</tspan><tspan class="line" dy="1.3em" x="234.890625" y="20">(D = 3 / N = 10 / a = 0.0043 / λ = 1.0 / δs = 0.6325)</tspan><tspan class="line" dy="2.6em" x="234.890625" y="20">α = 0.4975 / β = 1.0003</tspan></text></g></g></g></g><g class="menulayer"></g><g class="zoomlayer"></g></svg><div class="modebar-container" style="position: absolute; top: 0px; right: 0px; width: 100%;"><div id="modebar-bf7a2c" class="modebar modebar--hover ease-bg"><div class="modebar-group"><a rel="tooltip" class="modebar-btn" data-title="Download plot as a png" data-toggle="false" data-gravity="n"><svg viewBox="0 0 1000 1000" class="icon" height="1em" width="1em"><path d="m500 450c-83 0-150-67-150-150 0-83 67-150 150-150 83 0 150 67 150 150 0 83-67 150-150 150z m400 150h-120c-16 0-34 13-39 29l-31 93c-6 15-23 28-40 28h-340c-16 0-34-13-39-28l-31-94c-6-15-23-28-40-28h-120c-55 0-100-45-100-100v-450c0-55 45-100 100-100h800c55 0 100 45 100 100v450c0 55-45 100-100 100z m-400-550c-138 0-250 112-250 250 0 138 112 250 250 250 138 0 250-112 250-250 0-138-112-250-250-250z m365 380c-19 0-35 16-35 35 0 19 16 35 35 35 19 0 35-16 35-35 0-19-16-35-35-35z" transform="matrix(1 0 0 -1 0 850)"></path></svg></a></div><div class="modebar-group"><a rel="tooltip" class="modebar-btn active" data-title="Zoom" data-attr="dragmode" data-val="zoom" data-toggle="false" data-gravity="n"><svg viewBox="0 0 1000 1000" class="icon" height="1em" width="1em"><path d="m1000-25l-250 251c40 63 63 138 63 218 0 224-182 406-407 406-224 0-406-182-406-406s183-406 407-406c80 0 155 22 218 62l250-250 125 125z m-812 250l0 438 437 0 0-438-437 0z m62 375l313 0 0-312-313 0 0 312z" transform="matrix(1 0 0 -1 0 850)"></path></svg></a><a rel="tooltip" class="modebar-btn" data-title="Pan" data-attr="dragmode" data-val="pan" data-toggle="false" data-gravity="n"><svg viewBox="0 0 1000 1000" class="icon" height="1em" width="1em"><path d="m1000 350l-187 188 0-125-250 0 0 250 125 0-188 187-187-187 125 0 0-250-250 0 0 125-188-188 186-187 0 125 252 0 0-250-125 0 187-188 188 188-125 0 0 250 250 0 0-126 187 188z" transform="matrix(1 0 0 -1 0 850)"></path></svg></a></div><div class="modebar-group"><a rel="tooltip" class="modebar-btn" data-title="Zoom in" data-attr="zoom" data-val="in" data-toggle="false" data-gravity="n"><svg viewBox="0 0 875 1000" class="icon" height="1em" width="1em"><path d="m1 787l0-875 875 0 0 875-875 0z m687-500l-187 0 0-187-125 0 0 187-188 0 0 125 188 0 0 187 125 0 0-187 187 0 0-125z" transform="matrix(1 0 0 -1 0 850)"></path></svg></a><a rel="tooltip" class="modebar-btn" data-title="Zoom out" data-attr="zoom" data-val="out" data-toggle="false" data-gravity="n"><svg viewBox="0 0 875 1000" class="icon" height="1em" width="1em"><path d="m0 788l0-876 875 0 0 876-875 0z m688-500l-500 0 0 125 500 0 0-125z" transform="matrix(1 0 0 -1 0 850)"></path></svg></a><a rel="tooltip" class="modebar-btn" data-title="Autoscale" data-attr="zoom" data-val="auto" data-toggle="false" data-gravity="n"><svg viewBox="0 0 1000 1000" class="icon" height="1em" width="1em"><path d="m250 850l-187 0-63 0 0-62 0-188 63 0 0 188 187 0 0 62z m688 0l-188 0 0-62 188 0 0-188 62 0 0 188 0 62-62 0z m-875-938l0 188-63 0 0-188 0-62 63 0 187 0 0 62-187 0z m875 188l0-188-188 0 0-62 188 0 62 0 0 62 0 188-62 0z m-125 188l-1 0-93-94-156 156 156 156 92-93 2 0 0 250-250 0 0-2 93-92-156-156-156 156 94 92 0 2-250 0 0-250 0 0 93 93 157-156-157-156-93 94 0 0 0-250 250 0 0 0-94 93 156 157 156-157-93-93 0 0 250 0 0 250z" transform="matrix(1 0 0 -1 0 850)"></path></svg></a><a rel="tooltip" class="modebar-btn" data-title="Reset axes" data-attr="zoom" data-val="reset" data-toggle="false" data-gravity="n"><svg viewBox="0 0 928.6 1000" class="icon" height="1em" width="1em"><path d="m786 296v-267q0-15-11-26t-25-10h-214v214h-143v-214h-214q-15 0-25 10t-11 26v267q0 1 0 2t0 2l321 264 321-264q1-1 1-4z m124 39l-34-41q-5-5-12-6h-2q-7 0-12 3l-386 322-386-322q-7-4-13-4-7 2-12 7l-35 41q-4 5-3 13t6 12l401 334q18 15 42 15t43-15l136-114v109q0 8 5 13t13 5h107q8 0 13-5t5-13v-227l122-102q5-5 6-12t-4-13z" transform="matrix(1 0 0 -1 0 850)"></path></svg></a></div><div class="modebar-group"><a rel="tooltip" class="modebar-btn" data-title="Toggle Spike Lines" data-attr="_cartesianSpikesEnabled" data-val="on" data-toggle="false" data-gravity="n"><svg viewBox="0 0 1000 1000" class="icon" height="1em" width="1em"><path d="M512 409c0-57-46-104-103-104-57 0-104 47-104 104 0 57 47 103 104 103 57 0 103-46 103-103z m-327-39l92 0 0 92-92 0z m-185 0l92 0 0 92-92 0z m370-186l92 0 0 93-92 0z m0-184l92 0 0 92-92 0z" transform="matrix(1.5 0 0 -1.5 0 850)"></path></svg></a><a rel="tooltip" class="modebar-btn" data-title="Show closest data on hover" data-attr="hovermode" data-val="closest" data-toggle="false" data-gravity="ne"><svg viewBox="0 0 1500 1000" class="icon" height="1em" width="1em"><path d="m375 725l0 0-375-375 375-374 0-1 1125 0 0 750-1125 0z" transform="matrix(1 0 0 -1 0 850)"></path></svg></a><a rel="tooltip" class="modebar-btn active" data-title="Compare data on hover" data-attr="hovermode" data-val="x" data-toggle="false" data-gravity="ne"><svg viewBox="0 0 1125 1000" class="icon" height="1em" width="1em"><path d="m187 786l0 2-187-188 188-187 0 0 937 0 0 373-938 0z m0-499l0 1-187-188 188-188 0 0 937 0 0 376-938-1z" transform="matrix(1 0 0 -1 0 850)"></path></svg></a></div><div class="modebar-group"><a href="https://plotly.com/" target="_blank" data-title="Produced with Plotly" class="modebar-btn plotlyjsicon modebar-btn--logo"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 132 132" height="1em" width="1em"><defs><style>.cls-1 {fill: #3f4f75;} .cls-2 {fill: #80cfbe;} .cls-3 {fill: #fff;}</style></defs><title>plotly-logomark</title><g id="symbol"><rect class="cls-1" width="132" height="132" rx="6" ry="6"></rect><circle class="cls-2" cx="78" cy="54" r="6"></circle><circle class="cls-2" cx="102" cy="30" r="6"></circle><circle class="cls-2" cx="78" cy="30" r="6"></circle><circle class="cls-2" cx="54" cy="30" r="6"></circle><circle class="cls-2" cx="30" cy="30" r="6"></circle><circle class="cls-2" cx="30" cy="54" r="6"></circle><path class="cls-3" d="M30,72a6,6,0,0,0-6,6v24a6,6,0,0,0,12,0V78A6,6,0,0,0,30,72Z"></path><path class="cls-3" d="M78,72a6,6,0,0,0-6,6v24a6,6,0,0,0,12,0V78A6,6,0,0,0,78,72Z"></path><path class="cls-3" d="M54,48a6,6,0,0,0-6,6v48a6,6,0,0,0,12,0V54A6,6,0,0,0,54,48Z"></path><path class="cls-3" d="M102,48a6,6,0,0,0-6,6v48a6,6,0,0,0,12,0V54A6,6,0,0,0,102,48Z"></path></g></svg></a></div></div></div><svg class="main-svg" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" width="600" height="400"><g class="hoverlayer"></g></svg></div></div></div>
+    <script>
+    
+    PLOT = document.getElementById('899c68a5-db97-4ffc-a8ed-2a5040d6c604');
+    Plotly.plot(PLOT, [
+    {
+        "xaxis": "x",
+        "colorbar": {
+            "title": ""
+        },
+        "fill": "tozeroy",
+        "yaxis": "y",
+        "x": [
+            95.0,
+            988.0,
+            9994.0,
+            99997.0,
+            999989.0,
+            9.999985e6,
+            9.999985e6,
+            999989.0,
+            99997.0,
+            9994.0,
+            988.0,
+            95.0
+        ],
+        "showlegend": false,
+        "mode": "lines",
+        "fillcolor": "rgba(74, 168, 136, 0.500)",
+        "name": "random step sampling",
+        "zmin": null,
+        "legendgroup": "random step sampling",
+        "zmax": null,
+        "line": {
+            "color": "rgba(74, 168, 136, 1.000)",
+            "width": 0,
+            "dash": "solid",
+            "shape": "linear"
+        },
+        "y": [
+            15.137792801165869,
+            15.146421149782562,
+            15.150800261937881,
+            15.152169268524942,
+            15.152615280803406,
+            15.152680804302149,
+            15.152755030224805,
+            15.152853497296231,
+            15.152934505460097,
+            15.15274926422493,
+            15.151283182035268,
+            15.143997079493325
+        ],
+        "type": "scatter"
+    },
+    {
+        "xaxis": "x",
+        "colorbar": {
+            "title": ""
+        },
+        "yaxis": "y",
+        "x": [
+            95.0,
+            988.0,
+            9994.0,
+            99997.0,
+            999989.0,
+            9.999985e6
+        ],
+        "showlegend": true,
+        "mode": "lines",
+        "name": "random step sampling",
+        "zmin": null,
+        "legendgroup": "random step sampling",
+        "zmax": null,
+        "line": {
+            "color": "rgba(74, 168, 136, 1.000)",
+            "shape": "linear",
+            "dash": "solid",
+            "width": 2
+        },
+        "y": [
+            15.140894940329597,
+            15.148852165908915,
+            15.151774763081406,
+            15.15255188699252,
+            15.152734389049819,
+            15.152717917263477
+        ],
+        "type": "scatter"
+    },
+    {
+        "xaxis": "x",
+        "colorbar": {
+            "title": ""
+        },
+        "fill": "tozeroy",
+        "yaxis": "y",
+        "x": [
+            95.0,
+            988.0,
+            9994.0,
+            99997.0,
+            999989.0,
+            9.999985e6,
+            9.999985e6,
+            999989.0,
+            99997.0,
+            9994.0,
+            988.0,
+            95.0
+        ],
+        "showlegend": false,
+        "mode": "lines",
+        "fillcolor": "rgba(170, 72, 136, 0.500)",
+        "name": "quantum drift sampling",
+        "zmin": null,
+        "legendgroup": "quantum drift sampling",
+        "zmax": null,
+        "line": {
+            "color": "rgba(170, 72, 136, 1.000)",
+            "width": 0,
+            "dash": "solid",
+            "shape": "linear"
+        },
+        "y": [
+            15.14651332186315,
+            15.149000888386288,
+            15.152625225192411,
+            15.152439020541813,
+            15.15267401832106,
+            15.152694840576702,
+            15.152739779985358,
+            15.152804751270653,
+            15.152823230674418,
+            15.153932175304169,
+            15.15171771472743,
+            15.156049916872757
+        ],
+        "type": "scatter"
+    },
+    {
+        "xaxis": "x",
+        "colorbar": {
+            "title": ""
+        },
+        "yaxis": "y",
+        "x": [
+            95.0,
+            988.0,
+            9994.0,
+            99997.0,
+            999989.0,
+            9.999985e6
+        ],
+        "showlegend": true,
+        "mode": "lines",
+        "name": "quantum drift sampling",
+        "zmin": null,
+        "legendgroup": "quantum drift sampling",
+        "zmax": null,
+        "line": {
+            "color": "rgba(170, 72, 136, 1.000)",
+            "shape": "linear",
+            "dash": "solid",
+            "width": 2
+        },
+        "y": [
+            15.151281619367953,
+            15.15035930155686,
+            15.15327870024829,
+            15.152631125608115,
+            15.152739384795856,
+            15.15271731028103
+        ],
+        "type": "scatter"
+    },
+    {
+        "xaxis": "x",
+        "colorbar": {
+            "title": ""
+        },
+        "yaxis": "y",
+        "x": [
+            95.0,
+            988.0,
+            9994.0,
+            99997.0,
+            999989.0,
+            9.999985e6
+        ],
+        "showlegend": true,
+        "mode": "lines",
+        "name": "reference energy",
+        "zmin": null,
+        "legendgroup": "reference energy",
+        "zmax": null,
+        "line": {
+            "color": "rgba(253, 206, 11, 1.000)",
+            "shape": "linear",
+            "dash": "dash",
+            "width": 2
+        },
+        "y": [
+            15.15271731028103,
+            15.15271731028103,
+            15.15271731028103,
+            15.15271731028103,
+            15.15271731028103,
+            15.15271731028103
+        ],
+        "type": "scatter"
+    }
+]
+, {
+    "showlegend": true,
+    "xaxis": {
+        "showticklabels": true,
+        "gridwidth": 0.5,
+        "tickvals": [
+            100.0,
+            1000.0,
+            10000.0,
+            100000.0,
+            1.0e6,
+            1.0e7
+        ],
+        "range": [
+            1.8270553329907795,
+            7.150667620855857
+        ],
+        "domain": [
+            0.1209135316418781,
+            0.9934383202099738
+        ],
+        "mirror": false,
+        "tickangle": 0,
+        "showline": true,
+        "ticktext": [
+            "10<sup>2</sup>",
+            "10<sup>3</sup>",
+            "10<sup>4</sup>",
+            "10<sup>5</sup>",
+            "10<sup>6</sup>",
+            "10<sup>7</sup>"
+        ],
+        "zeroline": false,
+        "tickfont": {
+            "color": "rgba(0, 0, 0, 1.000)",
+            "family": "sans-serif",
+            "size": 11
+        },
+        "zerolinecolor": "rgba(0, 0, 0, 1.000)",
+        "anchor": "y",
+        "visible": true,
+        "ticks": "inside",
+        "tickmode": "array",
+        "linecolor": "rgba(0, 0, 0, 1.000)",
+        "showgrid": true,
+        "title": "Monte Carlo cycles",
+        "gridcolor": "rgba(0, 0, 0, 0.100)",
+        "titlefont": {
+            "color": "rgba(0, 0, 0, 1.000)",
+            "family": "sans-serif",
+            "size": 15
+        },
+        "tickcolor": "rgb(0, 0, 0)",
+        "type": "log"
+    },
+    "paper_bgcolor": "rgba(255, 255, 255, 1.000)",
+    "annotations": [
+        {
+            "yanchor": "top",
+            "xanchor": "center",
+            "rotation": -0.0,
+            "y": 1.0,
+            "font": {
+                "color": "rgba(0, 0, 0, 1.000)",
+                "family": "sans-serif",
+                "size": 20
+            },
+            "yref": "paper",
+            "showarrow": false,
+            "text": "Comparison of VMC sampling for a 3D quantum trap<br>(D = 3 / N = 10 / a = 0.0043 / λ = 1.0 / δs = 0.6325)<br>α = 0.4975 / β = 1.0003",
+            "xref": "paper",
+            "x": 0.5571759259259259
+        }
+    ],
+    "height": 400,
+    "margin": {
+        "l": 0,
+        "b": 20,
+        "r": 0,
+        "t": 20
+    },
+    "plot_bgcolor": "rgba(255, 255, 255, 1.000)",
+    "yaxis": {
+        "showticklabels": true,
+        "gridwidth": 0.5,
+        "tickvals": [
+            15.14,
+            15.145,
+            15.15,
+            15.155000000000001
+        ],
+        "range": [
+            15.137245087694662,
+            15.156597630343963
+        ],
+        "domain": [
+            0.07581474190726165,
+            0.9415463692038496
+        ],
+        "mirror": false,
+        "tickangle": 0,
+        "showline": true,
+        "ticktext": [
+            "15.140",
+            "15.145",
+            "15.150",
+            "15.155"
+        ],
+        "zeroline": false,
+        "tickfont": {
+            "color": "rgba(0, 0, 0, 1.000)",
+            "family": "sans-serif",
+            "size": 11
+        },
+        "zerolinecolor": "rgba(0, 0, 0, 1.000)",
+        "anchor": "x",
+        "visible": true,
+        "ticks": "inside",
+        "tickmode": "array",
+        "linecolor": "rgba(0, 0, 0, 1.000)",
+        "showgrid": true,
+        "title": "energy [ħω]",
+        "gridcolor": "rgba(0, 0, 0, 0.100)",
+        "titlefont": {
+            "color": "rgba(0, 0, 0, 1.000)",
+            "family": "sans-serif",
+            "size": 15
+        },
+        "tickcolor": "rgb(0, 0, 0)",
+        "type": "-"
+    },
+    "legend": {
+        "yanchor": "bottom",
+        "xanchor": "right",
+        "bordercolor": "rgba(0, 0, 0, 1.000)",
+        "bgcolor": "rgba(255, 255, 255, 1.000)",
+        "borderwidth": 1,
+        "tracegroupgap": 0,
+        "y": 0.07,
+        "font": {
+            "color": "rgba(0, 0, 0, 1.000)",
+            "family": "sans-serif",
+            "size": 11
+        },
+        "title": {
+            "font": {
+                "color": "rgba(0, 0, 0, 1.000)",
+                "family": "sans-serif",
+                "size": 15
+            },
+            "text": ""
+        },
+        "traceorder": "normal",
+        "x": 1.0
+    },
+    "width": 600
+}
+);
+    
+    </script><svg id="js-plotly-tester" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" style="position: absolute; left: -10000px; top: -10000px; width: 9000px; height: 9000px; z-index: 1;"><path class="js-reference-point" d="M0,0H1V1H0Z" style="stroke-width: 0; fill: black;"></path></svg>
+
+    
+
+</body></html>

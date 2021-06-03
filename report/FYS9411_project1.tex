@@ -1,10 +1,8 @@
 \documentclass[a4paper,8pt]{article}
 \usepackage[lmargin=20mm,rmargin=20mm,tmargin=20mm,bmargin=20mm]{geometry}
 \usepackage{multicol}
-
 \usepackage{graphicx}
-\usepackage{wrapfig}
-
+\usepackage[labelfont=bf]{caption}
 \usepackage{amsmath,amssymb}
 \usepackage{physics}
 \DeclareMathOperator{\mean}{mean}
@@ -299,21 +297,24 @@ Thorough numerical optimalisation was performed during development of the Julia 
 
 The most demanding computation of the VMC method presented here is the calculation of the local energy $\var{epsilon}$ at each Monte Carlo cycle, calculated with the formula \eqref{compLocalenergy}. One should strive to minimise the amount of times this computation is done. Consider as an example the case when a move has been rejected so that the particles stay in the same configuration as in the last cycle. Then there is no point in recalculating the local energy -- instead the sampled value from the last cycle should simply be copied. This was implemented in the script from the start. 
 
-Because the formula \eqref{compLocalenergy} involves a triple sum over the particle number $N$, great care should be taken to minimise the required calculations within the sum. Especially the norm calculations of the inter-particle distances $\Delta r_{ij}$ involved should be handled carefully. There are $N^2$ such distances at each cycle, a worst-case naive implementation would perform a total of $N^4$ norm calculations in the double loop and $2N^5$ norm calculations in the triple loop of \eqref{compLocalenergy} if calculated at each loop. A much better approach would be to store the $N^2$ values of $\Delta r_{ij}$ in a matrix and simply access the values in the loops. Then one could furthermore note that many of these values would not even have to be recalculated at each cycle -- because only one particle is moved at each cycle, indeed only the distances related to this particle need to be updated. Matrix storage like this was implemented for $\Delta r$ as a first optimalisation of the code as shown in table \ref{optTimes}. When handling matrices in any programming language, one should also keep in mind how matrices are stored in memory and cache. Julia uses the slightly counter-intuitive column-major storage, which means that matrices are stored column-wise in memory. Hence when looping through matrices in Julia, the inner loop should run through the first index of matrices for maximum speed. This is known as \textit{cache-friendly} looping, and was implemented as many places as possible in the script. This is why the relevant quantities are stored as \texttt{$\Delta$R[j,i]}$ = \Delta{r}_{ij}$ and so on. Later, matrix storage for the vector quantities $\vec{q}$ and $\vec{s}[\Delta r_{ij}] \equiv \vec{s}_{ij}$ was also implemented to a good speed-up. All storage is further described in the script comments.
+Because the formula \eqref{compLocalenergy} involves a triple sum over the particle number $N$, great care should be taken to minimise the required calculations within the sum. Especially the norm calculations of the inter-particle distances $\Delta r_{ij}$ involved should be handled carefully. There are $N^2$ such distances at each cycle, a worst-case naive implementation would perform a total of $N^4$ norm calculations in the double loop and $2N^5$ norm calculations in the triple loop of \eqref{compLocalenergy} if calculated at each loop. A much better approach would be to store the $N^2$ values of $\Delta r_{ij}$ in a matrix and simply access the values in the loops. Then one could furthermore note that many of these values would not even have to be recalculated at each cycle -- because only one particle is moved at each cycle, indeed only the distances related to this particle need to be updated. Matrix storage like this was implemented for $\Delta r$, but also for the vector quantities $\vec{q}$ and $\vec{s}[\Delta r_{ij}] \equiv \vec{s}_{ij}$, as a first optimalisation of the code as shown in table \ref{optTimes}. The matrix storage is further described in the script comments. When handling matrices in any programming language, one should also keep in mind how matrices are stored in memory and cache. Julia uses the slightly counter-intuitive column-major storage, which means that matrices are stored column-wise in memory. Hence when looping through matrices in Julia, the inner loop should run through the first index of matrices for maximum speed. This is known as \textit{cache-friendly} looping, and was implemented as many places as possible in the script. This is why the relevant quantities are stored as \texttt{$\Delta$R[j,i]}$ = \Delta{r}_{ij}$ and so on.
 
 The formula \eqref{compLocalenergy} was initially implemented using native vectorised Julia code including index slice access to vectors and the dot product. However, contrary to some other programming languages such as Python, Julia actually vectorises loops automatically, and vectorised code often turns out to be slower. Rewriting the vectorised code to plain loops, a speed-up of --- was achieved as shown in table \ref{optTimes}. This turns out to be the greatest speed-up of all the optimalisation performed, and should be kept in mind for future Julia implementations.
 
 Of course, parallellisation of the script also lead to a good speed-up of computation. Interestingly, the optimal number of worker threads turned out to be one thread less than the total amount of available threads on the computer. This was the case for both computers used with this project. This makes some sense as there is also a main thread, and although the main thread does not perform as heavy computations as the $T$ worker threads, it would still interfere with the flow of the computations if one of the available threads were to run both the main process and a worker process simultaneously.
 
-\begin{table}
-\begin{tabular}{lcc}
-	description & computation time [s] & allocations \\
-    1 & 2 & 3 \\
-    4 & 5 & 6 \\
+\begin{center}
+\begin{tabular}{lc}
+	\hline
+	\textbf{Optimalisation} & \textbf{Computation times [s]} \\
+	 & \textbf{RS / QD}\\
+	\hline
+    Initial code & 664 / 946 \\
+    Implement matrix storage & 376 / 667 \\
+    \hline
 \end{tabular}
-\caption{Yo for faen.}
-\label{optTimes}
-\end{table}
+\captionof{table}{Comparison of computation times for a reference system after various optimalisations to the Julia script. The numbers were found for a reference simulation of 100 million Monte Carlo cycles on a 1D trap with 2 interacting bosons.}\label{optTimes}
+\end{center}
 
 
 \subsection{Tuning}\label{tuning}
@@ -323,11 +324,10 @@ The VMC method presented in chapter \ref{theory} requires tuning with respect to
 \section{Results}\label{results}
 |||presentasjon og diskusjon av resultatene, samt sammenligning med \cite{SWL}, \cite{DBG} og \cite{DS}, samt kanskje \cite{NMPGHJP}||| Figur \ref{testfig}!
 
-\begin{figure}\label{testfig}
-\centering
-\includegraphics{figResampling.pdf}
-\caption{Test figure.}
-\end{figure}
+\begin{center}
+\includegraphics[width=\columnwidth]{figResampling}
+\captionof{figure}{Mofakkin figure.}\label{testfig}
+\end{center}
 
 \section{Conclusion}
 The script was optimised through ---, memory-handling and parallellisation, resulting in a total speed-up of about ---. As the Julia script was developed as a first-time experience with the language, there is sure to be many more optimalisations which could further increase the speed of calculations. That said however, Julia performance better than C++ has seldom been reported, and only in special cases.

@@ -31,9 +31,22 @@ Nicholas Metropolis, Arianna~W. Rosenbluth, Marshall~N. Rosenbluth, Augusta~H.
 \newblock Equation of {State Calculations} by {Fast Computing Machines}.
 \newblock {\em The Journal of Chemical Physics}, 21(6):1087--1092, 1953.
 
+\bibitem{JuliaGoal}
+Jeff Bezanson, Stefan Karpinski, Viral~B. Shah, and Alan Edelman.
+\newblock {Why We Created Julia}, Feb 2012.
+\newblock Electronic article at
+  https://julialang.org/blog/2012/02/why-we-created-julia/. Accessed on
+  02.06.2021.
+
 \bibitem{DS}
 F.~Dalfovo and S.~Stringari.
 \newblock Bosons in anisotropic traps: ground state and vortices.
 \newblock {\em Physical Review A}, 53(4):2477–2485, Apr 1996.
+
+\bibitem{NMPGHJP}
+J.~K. Nilsen, J.~Mur-Petit, M.~Guilleumas, M.~Hjorth-Jensen, and A.~Polls.
+\newblock Vortices in atomic {Bose-Einstein} condensates in the
+  large-gas-parameter region.
+\newblock {\em Physical Review A}, 71(5), May 2005.
 
 \end{thebibliography}

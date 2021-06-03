@@ -448,7 +448,7 @@ function find_VMC_energy(trap::QuantumTrap, Ms::Vector{Int64}=[10^4,10^6];
 
     if plot_output ∉ ("variation","convergence","resampling","none")
         error("The plot output choice '",plot_output,"' is not valid. ",
-            "Choose either 'variation', 'convergence', 'configurations', 'resampling' or 'none'.")
+            "Choose either 'variation', 'convergence', 'resampling' or 'none'.")
     end
 
     if plot_output == "variation" && U == 1

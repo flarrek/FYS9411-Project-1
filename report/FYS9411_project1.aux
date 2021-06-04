@@ -9,9 +9,9 @@
 \newlabel{model}{{2}{1}}
 \@writefile{toc}{\contentsline {subsection}{\numberline {2.1}Quantum system}{1}{}\protected@file@percent }
 \newlabel{system}{{2.1}{1}}
-\newlabel{dimHam}{{1}{1}}
 \citation{DBG}
 \citation{BTGHV}
+\newlabel{dimHam}{{1}{2}}
 \newlabel{Ham}{{4}{2}}
 \newlabel{U}{{5}{2}}
 \newlabel{V}{{6}{2}}
@@ -50,8 +50,8 @@
 \newlabel{gradientdescent}{{3.4}{5}}
 \@writefile{toc}{\contentsline {subsection}{\numberline {3.5}Block resampling}{5}{}\protected@file@percent }
 \newlabel{Bresampling}{{3.5}{5}}
+\newlabel{error2}{{38}{5}}
 \citation{JuliaGoal}
-\newlabel{error2}{{38}{6}}
 \newlabel{blocking}{{39}{6}}
 \@writefile{toc}{\contentsline {section}{\numberline {4}Method}{6}{}\protected@file@percent }
 \newlabel{method}{{4}{6}}
@@ -61,13 +61,13 @@
 \newlabel{structure}{{4.2}{6}}
 \@writefile{toc}{\contentsline {subsection}{\numberline {4.3}Optimalisation}{7}{}\protected@file@percent }
 \newlabel{optimalisation}{{4.3}{7}}
-\@writefile{lot}{\contentsline {table}{\numberline {1}{\ignorespaces \small  Comparison of computation times for a reference simulation after various optimalisations to the Julia script. 'RS' and 'QD' denotes random step and quantum drift sampling, respectively. The times were all measured on a 4-core (8-thread) computer.\relax }}{7}{}\protected@file@percent }
+\@writefile{lot}{\contentsline {table}{\numberline {1}{\ignorespaces \small  Comparison of computation times for a reference simulation after various optimalisations to the Julia script for both random step and quantum drift sampling. The times were all measured on a 4-core (8-thread) computer.\relax }}{7}{}\protected@file@percent }
 \newlabel{coptTimes}{{1}{7}}
 \citation{SWL}
 \citation{DBG}
 \@writefile{toc}{\contentsline {subsection}{\numberline {4.4}Tuning}{8}{}\protected@file@percent }
 \newlabel{tuning}{{4.4}{8}}
-\@writefile{lot}{\contentsline {table}{\numberline {2}{\ignorespaces \small  Comparison of acceptances for a reference simulation with different values of the sampling step size $\delta s$. 'RS' and 'QD' denote random step and quantum drift sampling, respectively.\relax }}{8}{}\protected@file@percent }
+\@writefile{lot}{\contentsline {table}{\numberline {2}{\ignorespaces \small  Comparison of acceptances for a reference simulation with different values of the sampling step size $\delta s$, using both random step and quantum drift sampling.\relax }}{8}{}\protected@file@percent }
 \newlabel{tunAcceptances}{{2}{8}}
 \@writefile{toc}{\contentsline {section}{\numberline {5}Results}{8}{}\protected@file@percent }
 \newlabel{results}{{5}{8}}
@@ -75,7 +75,6 @@
 \citation{SWL}
 \citation{SWL}
 \citation{SWL}
-\citation{DBG}
 \@writefile{toc}{\contentsline {subsection}{\numberline {5.1}Analytical benchmarking}{9}{}\protected@file@percent }
 \newlabel{benchmarking}{{5.1}{9}}
 \newlabel{ninGrounergy}{{40}{9}}
@@ -83,53 +82,53 @@
 \newlabel{3D10}{{5.2}{9}}
 \@writefile{lot}{\contentsline {table}{\numberline {3}{\ignorespaces \small  Results of gradient descent variation for four 3-dimensional systems with 10 bosons, using step size ${\delta v = 0.01}$ and threshold ${\delta g = 0.001}$. The spherical systems \texttt  {3D10} and \texttt  {3D10i} were varied from initial values ${\alpha = 0.4}$ and ${\beta = 1.1}$, while the elliptical systems \texttt  {3D10e} and \texttt  {3D10ie} were varied from initial values ${\alpha = 0.4}$ and ${\beta = 2.8}$.\relax }}{9}{}\protected@file@percent }
 \newlabel{gd3D10}{{3}{9}}
-\@writefile{lof}{\contentsline {figure}{\numberline {1}{\ignorespaces \small  Range variation for system \texttt  {3D10} around the optimal value for $\alpha $, with the value for $\beta $ fixed at the optimal $1.0$. As expected, there is a clear minimum at ${\alpha = 0.5}$.\relax }}{10}{}\protected@file@percent }
-\newlabel{var3D10}{{1}{10}}
+\@writefile{lof}{\contentsline {figure}{\numberline {1}{\ignorespaces \small  Range variation for system \texttt  {3D10} around the optimal value for $\alpha $, with the value for $\beta $ fixed at the optimal value of $1.0$ and a clear minimum at $\alpha = 0.5$.\relax }}{9}{}\protected@file@percent }
+\newlabel{var3D10}{{1}{9}}
 \@writefile{lof}{\contentsline {figure}{\numberline {2}{\ignorespaces \small  Range variation for the spherical interacting system \texttt  {3D10i} around the optimal values for $\alpha $ and $\beta $ found with gradient descent variation (table 3\hbox {}). The minimum is less clear in this case.\relax }}{10}{}\protected@file@percent }
 \newlabel{var3D10i}{{2}{10}}
 \@writefile{lof}{\contentsline {figure}{\numberline {3}{\ignorespaces \small  Range variation for the elliptical interacting system \texttt  {3D10ie} around the optimal values for $\alpha $ and $\beta $ found with gradient descent variation (table 3\hbox {}). The minimum is also here less clear.\relax }}{10}{}\protected@file@percent }
 \newlabel{var3D10ie}{{3}{10}}
 \@writefile{lot}{\contentsline {table}{\numberline {4}{\ignorespaces \small  Results of range variation for the 3-dimensional systems with 10 interacting bosons, based on the gradient descent results from table 3\hbox {}.\relax }}{10}{}\protected@file@percent }
 \newlabel{r3D10}{{4}{10}}
-\@writefile{lof}{\contentsline {figure}{\numberline {4}{\ignorespaces \small  Comparison of sampling methods for the spherical interacting system (\texttt  {3D10i}) at the optimal values of $\alpha $ and $\beta $ found with gradient descent variation (table 3\hbox {}).\relax }}{10}{}\protected@file@percent }
+\@writefile{lof}{\contentsline {figure}{\numberline {4}{\ignorespaces \small  Comparison of sampling methods for the spherical interacting system \texttt  {3D10i} at the optimal values of $\alpha $ and $\beta $ found with gradient descent variation (table 3\hbox {}).\relax }}{10}{}\protected@file@percent }
 \newlabel{samp3D10i}{{4}{10}}
+\@writefile{lof}{\contentsline {figure}{\numberline {5}{\ignorespaces \small  Comparison of sampling methods for the elliptical interacting system \texttt  {3D10ie} around the optimal values for $\alpha $ and $\beta $ found with gradient descent variation (table 3\hbox {}).\relax }}{10}{}\protected@file@percent }
+\newlabel{samp3D10ie}{{5}{10}}
 \citation{SWL}
 \citation{SWL}
 \citation{SWL}
 \citation{SWL}
-\@writefile{lof}{\contentsline {figure}{\numberline {5}{\ignorespaces \small  Comparison of sampling methods for the elliptical interacting system (\texttt  {3D10ie}) around the optimal values for $\alpha $ and $\beta $ found with gradient descent variation (table 3\hbox {}).\relax }}{11}{}\protected@file@percent }
-\newlabel{samp3D10ie}{{5}{11}}
-\@writefile{lof}{\contentsline {figure}{\numberline {6}{\ignorespaces \small  Comparison of sampling methods for the spherical non-interacting system (\texttt  {3D10}) around the optimal values for $\alpha $ and $\beta $. Both methods converge from start.\relax }}{11}{}\protected@file@percent }
+\@writefile{lof}{\contentsline {figure}{\numberline {6}{\ignorespaces \small  Comparison of sampling methods for the spherical non-interacting system \texttt  {3D10} around the optimal values for $\alpha $ and $\beta $. Both methods converge from start.\relax }}{11}{}\protected@file@percent }
 \newlabel{samp3D10}{{6}{11}}
-\@writefile{lof}{\contentsline {figure}{\numberline {7}{\ignorespaces \small  Block resampling of the statistical error for the elliptical interacting system (\texttt  {3D10ie}).\relax }}{11}{}\protected@file@percent }
+\@writefile{lof}{\contentsline {figure}{\numberline {7}{\ignorespaces \small  Block resampling of the statistical error for the elliptical interacting system \texttt  {3D10ie}.\relax }}{11}{}\protected@file@percent }
 \newlabel{block3D10ie}{{7}{11}}
 \@writefile{toc}{\contentsline {subsection}{\numberline {5.3}3-dimensional elliptical traps with 10, 50 and 100 interacting bosons}{11}{}\protected@file@percent }
 \newlabel{3Die}{{5.3}{11}}
 \@writefile{lot}{\contentsline {table}{\numberline {5}{\ignorespaces \small  Results of Schøyen and Winther-Larsen\cite  {SWL} for elliptical interacting systems, varying only the variational parameter $\alpha $.\relax }}{11}{}\protected@file@percent }
 \newlabel{SWLresults}{{5}{11}}
+\@writefile{lot}{\contentsline {table}{\numberline {6}{\ignorespaces \small  Results of subsequent gradient descent for elliptical interacting systems, varying both variational parameters $\alpha $ and $\beta $. Convergence plots and full Julia output of the search is included in appendix B\hbox {}.\relax }}{11}{}\protected@file@percent }
+\newlabel{BFresults}{{6}{11}}
 \citation{SWL}
 \citation{SWL}
 \citation{SWL}
 \citation{DBG}
 \citation{SWL}
 \citation{DBG}
-\citation{SWL}
 \citation{DBG}
 \citation{SWL}
 \citation{DBG}
+\citation{SWL}
+\citation{SWL}
 \citation{SWL}
 \citation{NMPGHJP}
-\@writefile{lot}{\contentsline {table}{\numberline {6}{\ignorespaces \small  Results of subsequent gradient descent for elliptical interacting systems, varying both variational parameters $\alpha $ and $\beta $. Convergence plots and full Julia output of the search is included in appendix B\hbox {}.\relax }}{12}{}\protected@file@percent }
-\newlabel{BFresults}{{6}{12}}
-\newlabel{output}{{5.3}{12}}
-\@writefile{lot}{\contentsline {table}{\numberline {7}{\ignorespaces \small  Reproduction of the results of Schøyen and Winther-Larsen\cite  {SWL} for elliptical interacting systems, using the same parametric values as them.\relax }}{12}{}\protected@file@percent }
-\newlabel{BFSWLresults}{{7}{12}}
-\@writefile{lof}{\contentsline {figure}{\numberline {8}{\ignorespaces \small  A rescaled presentation of the results of DuBois and Glyde\cite  {DBG}. Their results discernably matches the results of this report as well as \cite  {SWL}.\relax }}{12}{}\protected@file@percent }
-\newlabel{DBGresults}{{8}{12}}
-\@writefile{toc}{\contentsline {section}{\numberline {6}Conclusion}{12}{}\protected@file@percent }
 \bibstyle{unsrt}
 \bibdata{FYS9411_project1}
 \bibcite{SWL}{1}
+\@writefile{lot}{\contentsline {table}{\numberline {7}{\ignorespaces \small  Reproduction of the results of Schøyen and Winther-Larsen\cite  {SWL} for elliptical interacting systems, using the same parametric values as them.\relax }}{12}{}\protected@file@percent }
+\newlabel{BFSWLresults}{{7}{12}}
+\@writefile{lof}{\contentsline {figure}{\numberline {8}{\ignorespaces \small  A rescaled presentation of the results of DuBois and Glyde\cite  {DBG}. Their results discernably match the results of this report as well as \cite  {SWL}.\relax }}{12}{}\protected@file@percent }
+\newlabel{DBGresults}{{8}{12}}
+\@writefile{toc}{\contentsline {section}{\numberline {6}Conclusion}{12}{}\protected@file@percent }
 \bibcite{AEMWC}{2}
 \bibcite{DBG}{3}
 \bibcite{BTGHV}{4}
@@ -163,12 +162,12 @@
 \newlabel{output}{{B}{18}}
 \@writefile{toc}{\contentsline {subsection}{\numberline {B.1}Convergence of results for the systems \texttt  {3D10ie}, \texttt  {3D50ie} and \texttt  {3D100ie}}{18}{}\protected@file@percent }
 \newlabel{convOutput}{{B.1}{18}}
-\@writefile{lof}{\contentsline {figure}{\numberline {9}{\ignorespaces \small  Convergence of VMC energy for the elliptical trap with 10 interacting bosons (\texttt  {3D10ie}).\relax }}{18}{}\protected@file@percent }
-\@writefile{lof}{\contentsline {figure}{\numberline {10}{\ignorespaces \small  Convergence of VMC energy for the elliptical trap with 50 interacting bosons (\texttt  {3D50ie}).\relax }}{18}{}\protected@file@percent }
-\@writefile{lof}{\contentsline {figure}{\numberline {11}{\ignorespaces \small  Convergence of VMC energy for the elliptical trap with 100 interacting bosons (\texttt  {3D100ie}).\relax }}{18}{}\protected@file@percent }
+\@writefile{lof}{\contentsline {figure}{\numberline {9}{\ignorespaces \small  Convergence of VMC energy for the elliptical trap with 10 interacting bosons, \texttt  {3D10ie}.\relax }}{18}{}\protected@file@percent }
+\@writefile{lof}{\contentsline {figure}{\numberline {10}{\ignorespaces \small  Convergence of VMC energy for the elliptical trap with 50 interacting bosons, \texttt  {3D50ie}.\relax }}{18}{}\protected@file@percent }
+\@writefile{lof}{\contentsline {figure}{\numberline {11}{\ignorespaces \small  Convergence of VMC energy for the elliptical trap with 100 interacting bosons, \texttt  {3D100ie}.\relax }}{18}{}\protected@file@percent }
 \@writefile{toc}{\contentsline {subsection}{\numberline {B.2}Gradient descent variation of the systems \texttt  {3D10ie}, \texttt  {3D50ie} and \texttt  {3D100ie}}{19}{}\protected@file@percent }
 \newlabel{gdOutput}{{B.2}{19}}
-\@writefile{lof}{\contentsline {figure}{\numberline {12}{\ignorespaces \small  Output from gradient descent variation and subsequent refinement of the elliptical trap with 10 interacting bosons (\texttt  {3D10ie}).\relax }}{19}{}\protected@file@percent }
-\@writefile{lof}{\contentsline {figure}{\numberline {13}{\ignorespaces \small  Output from gradient descent variation and subsequent refinement of the elliptical trap with 50 interacting bosons (\texttt  {3D50ie}).\relax }}{20}{}\protected@file@percent }
-\@writefile{lof}{\contentsline {figure}{\numberline {14}{\ignorespaces \small  Output from gradient descent variation and subsequent refinement of the elliptical trap with 100 interacting bosons (\texttt  {3D100ie}).\relax }}{21}{}\protected@file@percent }
+\@writefile{lof}{\contentsline {figure}{\numberline {12}{\ignorespaces \small  Output from gradient descent variation of the elliptical trap with 10 interacting bosons, \texttt  {3D10ie}, along with a final 100-million-cycle Monte Carlo simulation to refine the results.\relax }}{19}{}\protected@file@percent }
+\@writefile{lof}{\contentsline {figure}{\numberline {13}{\ignorespaces \small  Output from gradient descent variation of the elliptical trap with 50 interacting bosons, \texttt  {3D50ie}, along with a final 100-million-cycle Monte Carlo simulation to refine the results.\relax }}{20}{}\protected@file@percent }
+\@writefile{lof}{\contentsline {figure}{\numberline {14}{\ignorespaces \small  Output from gradient descent variation of the elliptical trap with 100 interacting bosons, \texttt  {3D100ie}, along with a final 100-million-cycle Monte Carlo simulation to refine the results.\relax }}{21}{}\protected@file@percent }
 \gdef \@abspage@last{21}

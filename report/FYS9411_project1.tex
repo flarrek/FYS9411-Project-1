@@ -11,7 +11,7 @@
 
 
 \title{\small FYS9411 -- Computational Physics II \\
-\Huge Variational Monte Carlo\\\huge on Elliptical Harmonic Traps with $N$ Bosons}
+\Huge Variational Monte Carlo\\\huge on Harmonic Traps with $N$ Bosons}
 \author{\large Jonas Boym Flaten \\
 \small University of Oslo}
 \date{\today}
@@ -22,27 +22,28 @@
 [
 \maketitle
 \begin{abstract}
-Using the Julia language, the method of Variational Monte Carlo (VMC) was implemented for a $D$-dimensional elliptical harmonic trap system with $N$ bosons, both with and without interaction. 2 variational parameters were tuned using the gradient descent method to obtain an estimate of the ground state energy for traps with $N = \{10,50,100\}$ bosons. The results are mainly benchmarked against \cite{SWL} which considered the same system but implemented the VMC method in C++ and only varies 1 variational parameter. A comparison of the results from two different Monte Carlo sampling methods, as well as statistical refinement of the results, is presented. Importance sampling using Langevin "quantum drift" sampling is shown to be superior to brute-force "random step" sampling. Finally, the effect of boson interaction is discussed. 
+Using the Julia language, the method of Variational Monte Carlo (VMC) was implemented for $D$-dimensional elliptical harmonic trap systems with $N$ bosons, both with and without interaction. Comparisons of two different Monte Carlo sampling methods, as well as statistical refinement through block resampling of the VMC results, are presented. Importance sampling using Langevin "quantum drift" sampling is shown to be superior to brute-force "random step" sampling with respect to convergence. Finally, 2 variational parameters were tuned using the gradient descent method to obtain an estimate of the ground state energy for traps with 10, 50 and 100 bosons. This is demonstrated to result in slightly lower estimates than earlier work, due to an apparent raise in the elliptic variational parameter $\beta$. The results are mainly benchmarked against the results of Schøyen and Winther-Larsen\cite{SWL}, who considered the same system but implemented the VMC method in C++ and only varied 1 variational parameter.
 \end{abstract}
 ]
 
 \section{Introduction}
-As far as current human knowledge goes, Quantum Mechanics seems to be an excellent model of the universe at the smallest scales. In this "picoscopic" regime our world can be thought to consist of fuzzy elementary particles, spreading diffusely through space but exchanging sharp energy quanta through four fundamental mechanisms. One big caveat however is the rate at which a thorough quantum mechanical analysis becomes impossible to conduct. For anything more than 1 particle, the complexity of the system of differential equations to consider quickly becomes overwhelming. Add several interaction mechanisms at once and you are sure to end up with a problem that nobody on Earth has been able to solve analytically (yet).
+As far as current human knowledge goes, Quantum Mechanics seems to be an excellent model of the universe at the smallest scales. In this "picoscopic" regime our world can be thought to consist of fuzzy elementary particles, spreading diffusely through space but exchanging sharp energy quanta through four fundamental mechanisms. One big caveat however is the rate at which a thorough quantum mechanical analysis becomes impossible to conduct. For anything more than one particle, the complexity of the system of differential equations to consider quickly becomes overwhelming. Add several interaction mechanisms at once and you are sure to end up with a problem that nobody on Earth has been able to solve analytically (yet).
 
-These difficulties with analytical analysis of quantum many-body systems encourages consideration of statistical and numerical methods. With the 
+These difficulties with analytical analysis of quantum many-body systems encourages development of statistical and numerical methods. With the 
 currently available computational power in one's own office and the advent of collaborative development of code over the Internet, the field of Computational Physics has emerged as a third alternative to the traditional theoretical and experimental branches of research. Especially within Quantum Mechanics, where the theoreticists face the complexity of coupled differential systems as discussed above while the experimentalists deal with the frailty (and cost) of experiments tuned to the extreme parameters of the quantum world, computational research is in many cases better suited to the task. Through numerical simulations founded on statistical methods and analysis, large quantum mechanical systems can be explored with remarkable precision.
 
-In this report, the computational method of Variational Monte Carlo (VMC) on an elliptical harmonic trap system containing $N$ bosons is considered, and its implementation in Julia and subsequent results are reported and benchmarked against the previous work of \cite{SWL} and others on the same system. The system is itself interesting because ---noe om bosonisk samfall, noen referanser til forskning på systemet?--- as demonstrated by the famous experiment of \cite{AEMWC}. VMC treatment of this system is discussed by \cite{DBG}, which in turn serves as the inspiration for the work in this report.
+In this report, the computational method of Variational Monte Carlo (VMC) is considered on spherical and elliptical harmonic trap systems containing $N$ bosons, and its implementation in Julia and subsequent results are reported and benchmarked against the previous work of Schøyen and Winther-Larsen\cite{SWL} on the same system in 2018. These systems are themselves interesting because they are physically constructible and shown to support theoretically-predicted Bose-Einstein condensation.\cite{AEMWC} VMC treatment of this system was first reported by Dubois and Glyde\cite{DBG} back in 2000, which in turn serves as the inspiration for this project.
 
-Sections \ref{model} and \ref{theory} provide the concrete mathematical model for the system in consideration and the principles leading up to the VMC method. In section \ref{method} the actual Julia implementation as well as the scientific approach to the problem is described. Finally in section \ref{results} the results are presented, discussed and compared to the results of \cite{SWL}.
+Chapters \ref{model} and \ref{theory} provide the concrete mathematical model for the system in consideration and the principles leading up to the VMC method. In chapter \ref{method} the actual Julia implementation is presented, along with the computational optimalisation and tuning performed. Finally, in chapter \ref{results}, results are presented, discussed and compared to the results in \cite{SWL}.
+
+The Julia script developed here, as well as additional results, are readily available on the GitHub page\footnote{https://github.com/flarrek/FYS9411-Project-1} of this project.
 
 
 
 \section{Model} \label{model}
-The model system considered in the project is declared in this chapter.
 
 \subsection{Quantum system}\label{system}
-The quantum system considered here is a $D$-dimensional quantum trap with an arbitrary number of identical bosons $N$. In position basis the system Hamiltonian is
+The quantum system considered here is a $D$-dimensional quantum trap with an arbitrary number of identical bosons $N$. In position basis, the system Hamiltonian is
 \begin{equation}\label{dimHam}
 H[\vec{R}] = \sum\limits_i^N \left(U[\vec{r}_i] -\frac{\hbar^2}{2m}\nabla_i^2 \right) + \sum\limits_i^N\sum\limits_{j > i}^N V[\vec{r}_i,\vec{r}_j]
 \end{equation}
@@ -52,14 +53,14 @@ U[\vec{r}_i] &= \frac{m\omega^2}{2}\left(x_i^2+y_i^2+\lambda^2z_i^2\right), \\
 V[\vec{r}_i,\vec{r}_j] &= V[\Delta{r}_{ij}] =\begin{cases} \infty & \text{for $\Delta{r}_{ij} \leq a$} \\
 0 & \text{for $\Delta{r}_{ij} > a$} \end{cases}.
 \end{align}
-In other words $U$ is an elliptical harmonic oscillator potential, and $V$ describes a hard-sphere interaction between the bosons. In the equations above as well as the rest of this text, $\vec{r}_i$ and $\vec{\nabla}_i$ are the position and spatial derivative of the boson indexed by $i$. Furthermore $\Delta\vec{r}_{ij} = \vec{r}_i-\vec{r}_j$ is the distance vector between the bosons $i$ and $j$. Finally $\vec{R}$ is the configuration vector of the system as a whole (containing all the bosonic positions $\vec{r}_i$).
+In other words, $U$ is an elliptical harmonic oscillator potential, and $V$ describes a hard-sphere interaction between the bosons. In the equations above as well as the rest of this text, $\vec{r}_i$ and $\vec{\nabla}_i$ are the position and spatial derivative of the boson indexed by $i$. Furthermore $\Delta\vec{r}_{ij} = \vec{r}_i-\vec{r}_j$ is the distance vector between the bosons $i$ and $j$. Finally $\vec{R}$ is the configuration vector of the system as a whole (containing all the bosonic positions $\vec{r}_i$).
 
-The parameters of the model are the mass $m$ and characteristic radius $a$ of the bosons, the trap strength $\omega$, as well as the elliptic parameter $\lambda$ (which potentially makes the trap elliptical in the z-direction). However the variables of the system can be made dimensionless by introducing $\sqrt{\frac{\hbar}{m\omega}}$ as length unit and $\hbar\omega$ as energy unit by splitting
+The parameters of the model are the mass $m$ and characteristic radius $a$ of the bosons, the trap strength $\omega$ as well as the elliptic parameter $\lambda$ (which potentially makes the trap elliptical in the z-direction). However the variables of the system can be made dimensionless by introducing $\sqrt{\frac{\hbar}{m\omega}}$ as length unit and $\hbar\omega$ as energy unit through splitting
 \begin{align}
 &\vec{r}_i = \sqrt{\frac{\hbar}{m\omega}}\vec{r'}_i, \quad &\vec{\nabla}_i = \sqrt{\frac{m\omega}{\hbar}}\vec{\nabla'}_i, \nonumber\\
 &H = \hbar\omega H', \quad\quad &a = \sqrt{\frac{\hbar}{m\omega}}a'. \nonumber
 \end{align}
-The primed variables $\vec{r'}_i$, $\vec{\nabla'}_i$, $H'$ and $a'$, are now dimensionless and give the relative size to the corresponding unit. Omitting the primes, the Hamiltonian \eqref{dimHam} takes the form
+The primed variables $\vec{r'}_i$, $\vec{\nabla'}_i$, $H'$ and $a'$, are now dimensionless and give the relative size to their corresponding unit. Omitting the primes, the Hamiltonian \eqref{dimHam} takes the form
 \begin{equation}\label{Ham}
 H[\vec{R}] = \sum\limits_i^N \frac{1}{2}\left( U[\vec{r}_i] - {\nabla}_i^2\right) + \sum\limits_i^N\sum\limits_{j > i}^N V[\Delta{r}_{ij}]
 \end{equation}
@@ -69,11 +70,11 @@ U[\vec{r}_i] &= x_i^2+y_i^2+\lambda^2z_i^2, \label{U}\\
 V[\Delta{r}_{ij}] &=\begin{cases} \infty & \text{for $\Delta{r}_{ij} \leq a$} \\
 0 & \text{for $\Delta{r}_{ij} > a$} \end{cases}. \label{V}
 \end{align}
-In the rest of this report, dimensionless variables and equations are considered. Systems of $D \in \{1,2,3\}$ dimensions with $N \in \{1,10,50,100\}$ bosons are considered. The respective values $\lambda = 1$ and $\lambda = \sqrt{8}$ will be used to examine spherical and elliptical traps, while the values $a = 0$ and $a = 0.0043$ will be used to examine the non-interacting and interacting case. The last value of $a$ is the characteristic radius of Rb-87 given in \cite{DBG}, which corresponds to a trap strength $\omega \approx 400\text{ /s}$ if one uses the value $a_\text{Rb-87} \approx 5.82\text{ nm}$ found experimentally in \cite{BTGHV}.
+In the rest of this report, dimensionless variables and equations are considered. Systems of $D \in \{1,2,3\}$ dimensions with $N \in \{1,10,50,100\}$ bosons are treated. The respective values $\lambda = 1$ and $\lambda = \sqrt{8}$ will be used to examine spherical and elliptical traps, while the values $a = 0$ and $a = 0.0043$ will be used to examine the non-interacting and interacting case. The last value of $a$ is the characteristic radius of Rb-87 given in \cite{DBG}, which corresponds to a trap strength $\omega \approx 400\text{ /s}$ if one uses the value $a_\text{Rb-87} \approx 5.82\text{ nm}$ found experimentally in \cite{BTGHV}.
 
 
 \subsection{Trial state}
-The variational method discussed in chapter \ref{theory} requires a trial state. The bosonic trial state in consideration has the position basis form
+The variational method discussed in chapter \ref{theory} requires a trial state, and the bosonic trial state in consideration has the position basis form
 \begin{equation}\label{trialstate}
 \Psi[\vec{R}] = \prod\limits_i^N g[\vec{r}_i] \prod\limits_j^N\prod\limits_{k > j}^N f[\vec{r}_j,\vec{r}_k]
 \end{equation}
@@ -81,26 +82,24 @@ with
 \begin{align}
 g[\vec{r}_i] &= \epsilon^{-\alpha\left(x_i^2+y_i^2+ \beta z_i^2\right)}, \label{g}\\
 f[\vec{r}_i,\vec{r}_j] &= f[\Delta{r}_{ij}] = \begin{cases} 0 & \text{for $\Delta{r}_{ij} \leq a$} \\
-1-\frac{a}{\Delta{r}_{ij}} & \text{for $\Delta{r}_{ij} > a$} \end{cases}, \label{f}
+1-\frac{a}{\Delta{r}_{ij}} & \text{for $\Delta{r}_{ij} > a$} \end{cases}. \label{f}
 \end{align}
 Here $\epsilon$ is Euler's number and $a$ is the characteristic boson radius introduced in section \ref{model}, while $\alpha$ and $\beta$ are the variational parameters to tune when chasing the ground state energy.
 
 
 
 \section{Theory}\label{theory}
-The underlying theory of the project is presented in this chapter.
-
 
 \subsection{The variational method} \label{varmethod}
 The Variational Principle of Quantum Mechanics states that the ground state $E_\text{G}$ of any quantum system with Hamiltonian operator $\mathbf{H}$ is bounded from above by
 \begin{equation}\label{VP}
 E_\text{G} \leq \frac{\ev{\mathbf{H}}{\Psi}}{\braket{\Psi}{\Psi}}
 \end{equation}
-for any state $\ket{\Psi}$, and the variational method is based on finding a suitable trial state which minimises the bound $\frac{\ev{\mathbf{H}}{\Psi}}{\braket{\Psi}{\Psi}}$ in order to get an approximation to $E_\text{G}$. For $N$ particles in $D$ dimensions the bound takes the form
+for \underline{any} state $\ket{\Psi}$, and the variational method is based on finding a suitable trial state which minimises the bound $\frac{\ev{\mathbf{H}}{\Psi}}{\braket{\Psi}{\Psi}}$ in order to get an approximation to $E_\text{G}$. For $N$ particles in $D$ dimensions the bound takes the form
 \begin{align}
 \frac{\ev{\mathbf{H}}{\Psi}}{\braket{\Psi}{\Psi}} = \frac{\idotsint \Psi^*[\vec{R}]H[\vec{R}]\Psi[\vec{R}]\delta^{DN}R}{\idotsint \abs{\Psi[\vec{R}]}^2\delta^{DN}R} \nonumber
 \end{align}
-in position basis. Introducing now a quantity known as the \textit{local energy} $\varepsilon$ as
+in position basis. Introducing now a quantity known as the \textit{local energy}, $\varepsilon$, as
 \begin{equation}\label{localenergy}
 \varepsilon[\vec{R}] = \frac{H[\vec{R}]\Psi[\vec{R}]}{\Psi[\vec{R}]},
 \end{equation}
@@ -112,17 +111,17 @@ where
 \begin{equation}\label{distribution}
 \Pi[\vec{R}] = \frac{\abs{\Psi[\vec{R}]}^2}{\idotsint \abs{\Psi[\vec{R}]}^2\delta^{DN}R} 
 \end{equation}
-is the spatial probability distribution over the configuration space spanned by $\vec{R}$. But then the Variational Principle \eqref{VP} can be recast as
+is the spatial probability distribution of the system over the configuration space spanned by $\vec{R}$. But then the Variational Principle \eqref{VP} can be recast as
 \begin{equation}
 E_\text{G} \leq \ev{\varepsilon}_\Pi,
 \end{equation}
 and so the variational method becomes a matter of estimating the expected local energy, because this expected value provides an energy bound for the ground state of the system. At this probabilistic reinterpretation of the Variational Principle, a \textit{Monte Carlo simulation} enters the picture.
 
-Monte Carlo simulations in general are based on drawing a series of random samples from some relevant probability distribution and using statistics to harvest desired results about the system in consideration. In the case of \textit{Variational Monte Carlo} (or VMC), the samples to draw are the local energies $\varepsilon$ and the relevant distribution is the spatial distribution $\Pi$, defined in equations \eqref{localenergy} and \eqref{distribution} above. For this report these quantities are defined with respect to the Hamiltonian $H$ and the trial wavefunction $\Psi$ declared in \eqref{Ham} and \eqref{trialstate}, and in appendix \ref{derLocalenergy} the required derivatives of $\Psi$ are calculated to find an analytical expression for the local energy $\varepsilon$. But even though the sample function $\varepsilon$ is known and the trial wavefunction $\Psi$ itself is defined, its corresponding distribution $\Pi$ involves a $DN$-dimensional integral which quickly becomes impossible to calculate both analytically and numerically.
+Monte Carlo simulations in general are based on drawing series of random samples from some relevant probability distribution and using statistics to harvest desired results about the system in consideration. In the case of \textit{Variational Monte Carlo}, or VMC in short, the samples to draw are the local energies $\varepsilon$ and the relevant distribution is the spatial distribution $\Pi$, defined in equations \eqref{localenergy} and \eqref{distribution} above. For this project, these quantities are defined with respect to the Hamiltonian $H$ and the trial wavefunction $\Psi$ declared in \eqref{Ham} and \eqref{trialstate}, and in appendix \ref{derLocalenergy} the required derivatives of $\Psi$ are calculated to find an analytical expression for the local energy $\varepsilon$. But even though the sample function $\varepsilon$ is known and the trial wavefunction $\Psi$ itself is defined, its corresponding distribution $\Pi$ involves a $DN$-dimensional integral which quickly becomes impossible to calculate both analytically and numerically.
 
 
 \subsection{The Metropolis algorithm}\label{Metropolis}
-The \textit{Metropolis algorithm}, first introduced in \cite{MRRTT}, is an algorithm which makes it possible to sample from just some probability distribution with an unknown constant, and so it is perfectly suited for Variational Monte Carlo. In terms of this report, the algorithm is based on constructing an ergodic Markov chain with $\Pi$ as its stationary distribution and letting this Markov chain run from some initial configuration, sampling the local energy $\varepsilon$ along the way. The longer the Markov chain is allowed to run, the more of the distribution $\Pi$ is fleshed out, and the better the resulting mean value of $\varepsilon$ matches its actual expected value $\ev{\varepsilon}_\Pi$. This follows from the \textit{Central Limit Theorem}, which indeed states that for $M$ Monte Carlo cycles (where one cycle is one step in the Markov chain), the expected value of $\varepsilon$ is approximated by the sample mean, hereafter denoted simply as the \textit{VMC energy} $E_\text{VMC}$:
+The \textit{Metropolis algorithm}, originally introduced in \cite{MRRTT}, is an algorithm which makes it possible to sample from just some probability distribution with an unknown constant, and so it is perfectly suited for Variational Monte Carlo. In terms of this project, the algorithm is based on constructing an ergodic Markov chain with $\Pi$ as its stationary distribution and letting this Markov chain run from some initial configuration, sampling the local energy $\varepsilon$ along the way. The longer the Markov chain is allowed to run, the more of the spatial distribution $\Pi$ is fleshed out, and the better the resulting sample mean value of $\varepsilon$ matches its actual expected value $\ev{\varepsilon}_\Pi$. This follows from the \textit{Central Limit Theorem}, which indeed states that for $M$ Monte Carlo cycles (where one cycle is one step in the Markov chain), the expected value of $\varepsilon$ is approximated by the sample mean, hereafter denoted simply as the \textit{VMC energy}, $E_\text{VMC}$:
 \begin{equation}\label{estimate}
 \ev{\varepsilon}_\Pi \approx \mean\varepsilon = \frac{1}{M}\sum\limits_{m = 1}^M \varepsilon[\vec{R}_m] \equiv E_\text{VMC}.
 \end{equation}
@@ -131,7 +130,7 @@ The statistical error of this approximation is given by the same theorem to be
 \Delta E_\text{VMC} &= \sqrt{\frac{1}{M} \van\varepsilon} \nonumber\\
 &= \sqrt{\frac{1}{M}\left(\frac{1}{M}\sum\limits_{m = 1}^C \varepsilon^2[\vec{R}_m] - E^2_\text{VMC}\right)}, \label{error}
 \end{align}
-where $\van\varepsilon$ is the sample variance. In these equations, $m$ is an index of each sample and $\vec{R}_m$ is the configuration at that cycle.
+where $\van\varepsilon$ is the sample variance. In these equations, $m$ is the index of each sample and $\vec{R}_m$ is the system configuration at that cycle.
 
 The Metropolis Markov chain is constructed from two transition probabilities: the proposal distribution $P[\vec{R}'|\vec{R}]$, which gives the probability of proposing a move to some new configuration $\vec{R}'$ when the previous sample was drawn at $\vec{R}$, and the acceptance probability $A[\vec{R}'|\vec{R}]$ which gives the probability of actually accepting this same proposed move. Note that while both $P$ and $A$ must take values between $0$ and $1$, $P$ must be a proper probability distribution in the sense that for all $\vec{R}$
 \begin{equation}\label{propdistcint}
@@ -147,7 +146,7 @@ where $\delta$ is Kronecker's delta, and by letting this matrix act on the targe
 &\sum\limits_{\vec{R}'} A[\vec{R}'|\vec{R}]P[\vec{R}'|\vec{R}]\Pi[\vec{R}] \nonumber\\
 &\qquad = \sum\limits_{\vec{R}'} A[\vec{R}|\vec{R}']P[\vec{R}|\vec{R}']\Pi[\vec{R}']  
 \end{align}
-follows. If the Markov chain is further required to be ergodic, so that it is ensured to sample from all possible configurations given enough time, then the balance criterion turns into the \textit{detailed balance criterion} in which the sums in \eqref{balance} are removed. Rewriting the detailed balance criterion, the following constraint is put on the acceptance rate $A$:
+follows. If the Markov chain is further required to be ergodic, so that it is ensured to sample from all possible configurations given enough time, then the balance criterion turns into the \textit{detailed balance criterion} in which the sums in \eqref{balance} are removed. Rewriting the detailed balance criterion, the following constraint is put on the acceptance probability $A$:
 \begin{equation}\label{accprobcint}
 \frac{A[\vec{R}'|\vec{R}]}{A[\vec{R}|\vec{R}']} = \frac{P[\vec{R}|\vec{R}']\Pi[\vec{R}']}{P[\vec{R}'|\vec{R}]\Pi[\vec{R}]}.
 \end{equation}
@@ -155,15 +154,15 @@ The simplest choice of $A$ to enforce this constraint is the \textit{Metropolis 
 \begin{equation}\label{accprob}
 A[\vec{R}'|\vec{R}] = \min\left\{1,\frac{P[\vec{R}|\vec{R}']\Pi[\vec{R}']}{P[\vec{R}'|\vec{R}]\Pi[\vec{R}]}\right\}.
 \end{equation}
-With this definition of the acceptance probability, the Markov chain is ensured to eventually sample from all corners of the sample space, so that given enough Monte Carlo cycles the sample mean value of $\varepsilon$ will converge to its true expected value $\ev{\varepsilon}_\Pi$. While almost magical in its simplicity, it is now clear how the Metropolis algorithm can sample from $\Pi$ without ever calculating the large integral in \eqref{distribution}; because only a ratio of $\Pi$ values appears in the acceptance ratio above, the integral cancels out and is in some sense removed from the problem.
+With this definition, the Markov chain is ensured to eventually sample from all corners of configuration space, so that, given enough Monte Carlo cycles, the sample mean value of $\varepsilon$ will converge to its true expected value $\ev{\varepsilon}_\Pi$. While almost magical in its simplicity, it is now clear how the Metropolis algorithm can sample from $\Pi$ without ever calculating the large integral in \eqref{distribution}; because only a ratio of $\Pi$ values appears in the acceptance ratio above, the integral cancels out and is in some sense removed from the problem.
 
-As for the proposal distribution $P$, it can in principle be any distribution as long as \eqref{propdistcint} is fulfilled, but the choice will affect both the acceptance ratio to be computed from \eqref{accprob} as well as the number of Monte Carlo cycles required for the VMC energy $E_\text{VMC}$ to converge. Because the proposal distribution directly affects the moves which are proposed and thus sampled, the choice of proposal distribution corresponds to choosing a sampling method for the Metropolis algorithm. Note that because the trial wavefunction defined in \eqref{trialstate} is a product of functions which depend only on one or two particles each, the computation of the acceptance ratio $A$ simplifies significantly if only one random particle is chosen and moved in each move. In other words, by picking one random particle $i$ with probability $\frac{1}{N}$ and then drawing a move for this particle from some proposal distribution $P[\vec{R}'_i|\vec{R}]$, the expression \eqref{accprob} for the acceptance probability $A$ reduces to
+As for the proposal distribution $P$, it can in principle be any distribution as long as \eqref{propdistcint} is fulfilled, but the choice will affect both the acceptance ratio to be computed from \eqref{accprob} as well as the number of Monte Carlo cycles required for the VMC energy to converge. Because the proposal distribution directly affects the moves proposed and (possibly) sampled, the choice of proposal distribution corresponds to choosing a sampling method for the Metropolis algorithm. Note that because the trial wavefunction $\Psi$ defined in \eqref{trialstate} is a product of functions which depend only on one or two particles each, the computation of the acceptance ratio $A$ simplifies significantly if only \underline{one} random particle is chosen and moved in each move. In other words, by picking one random particle $i$ with probability $\frac{1}{N}$ and then drawing a move for this particle from some proposal distribution $P[\vec{R}'_i|\vec{R}]$, the expression \eqref{accprob} for the acceptance probability $A$ reduces to
 \begin{equation}\label{accprob_i}
 A[\vec{R}'_i|\vec{R}] = \min\left\{1,\frac{P[\vec{R}|\vec{R}'_i]}{P[\vec{R}'_i|\vec{R}]}\prod\limits_{j \neq i} \frac{g^2[\vec{r'}_i]f^2[\Delta r'_{ij}]}{g^2[\vec{r}_i]f^2[\Delta r_{ij}]}\right\},
 \end{equation}
-where the only difference between the configurations $\vec{R}$ and $\vec{R}'_i$ is that the position $\vec{r}_i$ of the randomly chosen particle $i$ has changed to $\vec{r'}_i$.  Hence instead of computing the whole trial wavefunction at each Monte Carlo cycle, only the factors involving particle $i$ need to be computed.
+where the only difference between the configurations $\vec{R}$ and $\vec{R}'_i$ is that the position $\vec{r}_i$ of the randomly chosen particle $i$ has changed to $\vec{r'}_i$.  Hence instead of computing the whole trial wavefunction at each Monte Carlo cycle, only the factors involving particle $i$ need to be evaluated.
 
-Two sampling methods based on single particle moves will be considered in this report. In the first brute-force "random step" method, a new position for particle $i$ is drawn as
+Two sampling methods based on single particle moves will be considered in this report. In the first brute-force "random step" (RS) method, a new position for particle $i$ is drawn as
 \begin{equation}\label{propRS}
 \vec{r'}_i = \vec{r}_i+\widetilde{\delta\vec{r}},
 \end{equation}
@@ -171,19 +170,20 @@ where $\widetilde{\delta\vec{r}}$ is a stochastic vector drawn uniformly from th
 \begin{equation}
 p[\vec{R}'_i|\vec{R}] = p[\vec{R}|\vec{R}'_i], \nonumber
 \end{equation}
-so the acceptance ratio in \eqref{accprob_i} reduces to
+so the acceptance ratio in \eqref{accprob_i} reduces to simply
 \begin{equation}\label{accprobRS}
 A[\vec{R}'_i|\vec{R}] = \min\left\{1,\prod\limits_{j \neq i} \frac{g^2[\vec{r'}_i]f^2[\Delta r'_{ij}]}{g^2[\vec{r}_i]f^2[\Delta r_{ij}]}\right\}.
 \end{equation}
 
+
 \subsection{Quantum drift sampling}\label{QDsampling}
-The second sampling method to be considered, referred to as the "quantum drift" method, is based on the \textit{Langevin equation} – a stochastic differential equation originally introduced to consider Brownian motion. Its original full form is
+The second sampling method to be considered, referred to as the "quantum drift" (QD) method, is based on the \textit{Langevin equation}, a stochastic differential equation originally introduced to consider Brownian motion. Its original full form is
 \begin{equation}
 m\frac{\delta^2\vec{r}}{\delta t^2} = -\gamma\frac{\delta\vec{r}}{\delta t}+\vec{F}[\vec{r}]+\widetilde{\vec{B}},
 \end{equation}
-which is nothing else than Newton's second law for a particle subject to a frictional force $-\gamma\frac{\delta\vec{r}}{\delta t}$, an external force field $\vec{F}$ as well as a stochastic Brownian force $\widetilde{\vec{B}}$ meant to invoke random fluctuations in the particle's trajectory. In the case of a very strong frictional force the acceleration can be neglected, and the equation reduces to the overdamped Langevin equation
+which is nothing else than Newton's second law for a particle subject to a frictional force $-\gamma\frac{\delta\vec{r}}{\delta t}$, an external force field $\vec{F}$ as well as a stochastic Brownian force $\widetilde{\vec{B}}$ meant to invoke random fluctuations in the particle's trajectory. In the case of a very strong frictional force the acceleration can be neglected, and the equation reduces to the overdamped Langevin equation,
 \begin{equation}
-\frac{\delta\vec{r}}{\delta t} = \frac{\vec{F}[\vec{r}]}{\gamma}+\frac{\widetilde{\vec{B}}}{\gamma},
+\frac{\delta\vec{r}}{\delta t} = \frac{\vec{F}[\vec{r}]}{\gamma}+\frac{\widetilde{\vec{B}}}{\gamma}.
 \end{equation}
 Using now the length unit set in section \ref{system} and introducing a suitable time unit, this equation can be made dimensionless and recast to
 \begin{equation}\label{Langevin}
@@ -193,17 +193,17 @@ where $\vec{Q}$ is a dimensionless drift term and $\widetilde{\vec{W}}$ is a dim
 \begin{equation}
 \vec{r'}_i = \vec{r}_i+\frac{1}{2}\vec{Q}_i[\vec{R}]\delta t + \widetilde{\delta\vec{r}}
 \end{equation}
-for some fixed small (dimensionless) time step $\delta t$ and a stochastic vector $\widetilde{\delta\vec{r}}$ drawn from a normal distribution with mean zero and deviation $\sqrt{\delta t}$ in each spatial direction. For some consistency with the random step sampling method introduced at the end of section \ref{Metropolis}, $\delta s$ can be introduced as
+for some fixed small dimensionless time step $\delta t$ and a stochastic vector $\widetilde{\delta\vec{r}}$ drawn from a normal distribution with mean zero and deviation $\sqrt{\delta t}$ in each spatial direction. For some consistency with the random step sampling method introduced at the end of section \ref{Metropolis}, $\delta s$ can be introduced as
 \begin{equation}
 \delta s = \sqrt{\delta t}
 \end{equation}
-to recast the proposal algorithm as
+to recast this proposal algorithm as
 \begin{equation}\label{propLD}
 \vec{r'}_i = \vec{r}_i+\frac{1}{2}\vec{Q}_i[\vec{R}]\delta s^2 + \widetilde{\delta\vec{r}}, 
 \end{equation}
 in which $\widetilde{\delta\vec{r}}$ now is a stochastic vector drawn from a normal distribution with mean zero and deviation $\delta s$ in each spatial direction.
 
-The proposal distribution $P$ for the algorithm in \eqref{propLD} is not symmetric, but can be found by considering the corresponding \textit{Fokker-Planck equation}, which is a partial differential equation describing the time evolution of the spatial configuration distribution $\Pi$ when a Langevin equation is invoked on a particle. The Fokker-Planck equation corresponding to the overdamped Langevin equation \eqref{Langevin} is also known as the \textit{Smoluchowski equation} and is given by
+The proposal distribution $P$ for the algorithm in \eqref{propLD} is not symmetric, but can be found by considering the corresponding \textit{Fokker-Planck equation}, which is a partial differential equation describing the time evolution of the spatial configuration distribution $\Pi$ when a Langevin equation is invoked on each particle. The Fokker-Planck equation corresponding to the overdamped Langevin equation \eqref{Langevin} is also known as the \textit{Smoluchowski equation} and is given by
 \begin{equation}\label{Smoluchowski}
 \frac{\delta\Pi}{\delta t} = \frac{1}{2}\vec{\nabla}_i\cdot\left(\vec{\nabla}_i-\vec{Q}_i\right)\Pi.
 \end{equation}
@@ -220,11 +220,11 @@ In terms of Variational Monte Carlo the drift term is known as the \textit{quant
 \vec{Q}_i[\vec{R}] = \frac{2\vec{\nabla}_i\Psi[\vec{R}]}{\Psi[\vec{R}]}.
 \end{equation}
 In appendix \ref{derQuantumdrift} an analytical expression for the quantum drift is found using the derivatives of the trial wavefunction $\Psi$ which were already calculated in appendix \ref{derLocalenergy}. Noting that
-\begin{align}
+{\small\begin{align}
 &\left(\vec{r'}_i-\vec{r}_i-\frac{1}{2}\vec{Q}_i[\vec{R}]\delta s^2 \right)^2-\left(\vec{r}_i-\vec{r'}_i-\frac{1}{2}\vec{Q}_i[\vec{R}'_i]\delta s^2\right)^2 \nonumber\\
 &= -\left(\vec{r'}_i-\vec{r}_i\right) \cdot \left(\vec{Q}_i[\vec{R}'_i]+\vec{Q}_i[\vec{R}]\right)\delta s^2-\frac{\vec{Q}_i^2[\vec{R}'_i]-\vec{Q}_i^2[\vec{R}]}{4}\delta s^4 \nonumber\\
 &= -\left(\vec{r'}_i-\vec{r}_i+\frac{\vec{Q}_i[\vec{R}'_i]-\vec{Q}_i[\vec{R}]}{4}\delta s^2\right)\cdot\left(\vec{Q}_i[\vec{R}'_i]+\vec{Q}_i[\vec{R}]\right)\delta s^2 \nonumber
-\end{align}
+\end{align}}%
 the acceptance probability in \eqref{accprob_i} reduces in this case of quantum drift sampling to
 \begin{align}
 &A[\vec{R}'_i|\vec{R}] = \min\Bigg\{1, \nonumber\\
@@ -232,13 +232,13 @@ the acceptance probability in \eqref{accprob_i} reduces in this case of quantum 
 \end{align}
 when inserting the Green function in \eqref{Green} as the proposal distribution $P$.
 
-As apparent from its definition \eqref{quantumdrift}, the quantum drift moves the particles with the distribution gradient, towards configurations of higher probability, and thus ensures that the "most important" configurations are sampled early on. This is why the quantum drift sampling method is also known as \textit{importance sampling}, and it should in general lead to faster convergence of the VMC energy $E_\text{VMC}$ with respect to the number of Monte Carlo cycles.
+As apparent from its definition \eqref{quantumdrift}, the quantum drift $\vec{Q}$ moves the particles with the distribution gradient, towards configurations of higher probability, and thus ensures that the "most important" configurations are sampled early on. This is why the quantum drift sampling is also known as \textit{importance sampling}, and it should in general lead to faster convergence of the VMC energy with respect to the number of Monte Carlo cycles $M$.
 
 
 \subsection{Gradient descent variation}\label{gradientdescent}
-So far only the Monte Carlo sampling itself has been discussed, but an equally important part of Variational Monte Carlo is to find the optimal values for the variational parameters, in the case of this report $\alpha$ and $\beta$. After all, estimating an energy bound $\ev{\varepsilon}_\Pi$ for \textit{some} $\alpha$ and $\beta$ ridiculously fast and to great precision with quantum drift Monte Carlo is no good if the bound is large compared to other values of $\alpha$ and $\beta$. Indeed the whole point of the Variational Principle \eqref{VP} is that it provides an energy estimate only when the bound is \_varied\_ and \_minimised\_ with respect to the variational parameters. In the following discussion as well as the rest of this report, paired values for $\alpha$ and $\beta$ are referred to as \textit{variational points}.
+So far only the Monte Carlo sampling itself has been discussed, but an equally important part of Variational Monte Carlo is to find the optimal values for the variational parameters, in the case of this project $\alpha$ and $\beta$. After all, estimating an energy bound $\ev{\varepsilon}_\Pi$ for \underline{some} $\alpha$ and $\beta$ ridiculously fast and to great precision with quantum-drift-sampled Monte Carlo is no good if the bound is large compared to other values of $\alpha$ and $\beta$. Indeed the whole point of the Variational Principle \eqref{VP} is that it provides an energy estimate only when the bound is \underline{varied} and \underline{minimised} with respect to the variational parameters. In the following discussion as well as the rest of the report, paired values for $\alpha$ and $\beta$ are referred to as \textit{variational points}.
 
-The crudest way to minimise the energy bound $\ev{\varepsilon}_\Pi$ is to estimate it for some range of variational points and pick the lowest value. This "range variation" can only be expected to provide a reasonable energy estimate if the range of variational points are in the vincinity of the true minimum. A more sophisticated method of variation is the so-called \textit{gradient descent variation}, in which the variational gradient (the gradient of $\ev{\varepsilon}_\Pi$ with respect to $\alpha$ and $\beta$) is estimated at some initial variational point and used to guide the values of $\alpha$ and $\beta$ "downwards" towards regions of lower energy $\ev{\varepsilon}_\Pi$.
+The crudest way to minimise the energy bound $\ev{\varepsilon}_\Pi$ is to estimate it for some range of variational points and pick the lowest value. This "range variation" can only be expected to provide a reasonable energy estimate if the range of variational points are in the vincinity of the true minimum. A more sophisticated method of variation is the so-called \textit{gradient descent} (GD) variation, in which the variational gradient (the gradient of $\ev{\varepsilon}_\Pi$ with respect to $\alpha$ and $\beta$) is estimated at some initial variational point and used to guide the values of $\alpha$ and $\beta$ "downwards" towards regions of lower energy.
 
 In appendix \ref{derVargrad} an analytical expression for the variational gradient is calculated, which turns out to require sampling of the quantities $\frac{\partial\ln\Psi}{\partial\alpha}$ and $\frac{\partial\ln\Psi}{\partial\beta}$ as well as their products with the local energy $\varepsilon$ at each Monte Carlo cycle so that the expected values $\ev{\frac{\partial\ln\Psi}{\partial\alpha_i}\varepsilon}_\Pi$ and $\ev{\frac{\partial\ln\Psi}{\partial\alpha_i}}_\Pi$ can be estimated. Then, new, better values of $\alpha$ and $\beta$ can be found through
 \begin{align}
@@ -251,13 +251,13 @@ Because of the finite step size $\delta v$ and convergence threshold $\delta g$,
 
 
 \subsection{Block resampling}\label{Bresampling}
-As described in section \ref{Metropolis}, the calculated sample mean bound $E_\text{VMC}$ converges towards the true energy bound $\ev{\varepsilon}_\Pi$ for a large number of Monte Carlo cycles $M$. However, the statistical error given in \eqref{error} is only correct if there is no correlation between the samples. The Metropolis algorithm presented here however, proposes to move only a single particle a short distance with each Monte Carlo cycle. Therefore two configurations following each other in the proposed Markov chain should be strongly correlated; indeed there should be correlation between whole chains of subsequent configuratins because the system needs several cycles to "get away" from any current configuration.
+As described in section \ref{Metropolis} around equation \eqref{estimate}, the calculated sample mean bound $E_\text{VMC}$ converges towards the true energy bound $\ev{\varepsilon}_\Pi$ for a large number of Monte Carlo cycles $M$. However, the statistical error given in \eqref{error} is only correct if there is no correlation between the samples. The Metropolis algorithm presented here however, proposes to move only a single particle a short distance with each Monte Carlo cycle. Therefore two configurations following each other in the proposed Markov chain should be strongly correlated; indeed there should be correlation between whole chains of subsequent configurations because the system needs several cycles to "get away" from any current configuration.
 
 A more formal way of measuring correlation in the samples of $\varepsilon$ is considering the \textit{sample autocovariance}
 \begin{equation}
 \aucov_l[\varepsilon] = \frac{1}{M-l}\sum\limits_m^{M-l} \left(\varepsilon[\vec{R}_m]-E_\text{VMC}\right)\left(\varepsilon[\vec{R}_{m+l}]-E_\text{VMC}\right)
 \end{equation}
-for all chain lengths $l$ less than $M$. As long as this covariance is finite for any $l$, the samples generated from the Metropolis algorithm are correlated, which means that the statistical error formula \eqref{error} should be replaced by
+for all chain lengths $l$ less than $M$. As long as this covariance is finite for some $l$, the samples generated from the Metropolis algorithm are correlated, which means that the statistical error formula \eqref{error} should be replaced by
 \begin{equation}\label{error2}
 \Delta E_\text{VMC} = \sqrt{\frac{1}{M} \left(\van[\varepsilon]+2\sum\limits_{l=1}^{M-1} \aucov_l[\varepsilon]\right)}.
 \end{equation}
@@ -265,38 +265,38 @@ But this expression involves a double sum in the autocovariance term, which can 
 \begin{equation}\label{blocking}
 \varepsilon'_m = \frac{\varepsilon_{2m-1}+\varepsilon_{2m}}{2},
 \end{equation}
-for all sample indices $m$ from $1$ to $\frac{M}{2}$. The new sample set is half the size of the original sample set, but both the sample mean and the statistical error turns out to be conserved through this "blocking" of the samples. The sample variance however will be different, and it can be shown that the transformation \eqref{blocking} corresponds to "shifting weight" from the autocovariance terms in \eqref{error2} to the variance term. By blocking multiple times this shifting continues until the samples are no longer correlated, at which point the statistical error formula \eqref{error2} reduces to the simple form in \eqref{error}. Continued blocking will eventually shift the error away from the variance term again when the number of samples approaches zero. However, the sample variance turns out to converge strongly towards its maximum and fluctuate around it for a while before declining. Hence blocking can simply be continued until the sample variance declines for the first time. The maximal value of the sample variance can then be used with equation \eqref{error} to provide a higher but much more correct estimate of the statistical error for the VMC energy $E_\text{VMC}$.
+for all sample indices $m$ from $1$ to $\frac{M}{2}$. The new sample set is half the size of the original sample set, but both the sample mean and the statistical error turns out to be conserved through this "blocking" of the samples. The sample variance however will be different, and it can be shown that the transformation \eqref{blocking} corresponds to "shifting weight" from the autocovariance terms in \eqref{error2} to the variance term. By blocking multiple times this shifting continues until the samples are no longer correlated, at which point the statistical error formula \eqref{error2} reduces to the simple form in \eqref{error}. Continued blocking will eventually shift the error away from the variance term again when the number of samples approaches zero. However, the sample variance turns out to converge strongly towards its maximum and fluctuate around it for a while before declining. Hence blocking can simply be continued until the sample variance declines for the first time. The maximal value of the sample variance can then be used with equation \eqref{error} to provide a higher, but much more correct, estimate of the statistical error for the VMC energy $E_\text{VMC}$.
 
 
 
 \section{Method}\label{method}
-As part of the project, a working VMC script was developed in the Julia language, implementing all the methods and formulas introduced in chapter \ref{theory}. The script is named \texttt{QuantumTrapVMC.jl} and can be accessed in the \texttt{code} folder at the GitHub page\footnote{https://github.com/flarrek/FYS9411-Project-1} of this project. The script uses names for all variables and parameters consistent with this report, and it is thorougly commented for easy examination. Its overarching structure is presented in section \ref{structure} of this chapter, as well as a description of the numerical optimalisation performed during development in section \ref{optimalisation}. Finally, section \ref{tuning} regards tuning of the algorithm parameters $\delta v$, $\delta g$ and $\delta s$. Firstly though, a brief introduction to the main characteristics of the Julia language is given in section \ref{Julia}.
+As part of the project, a working VMC script was developed in the Julia language, implementing all the methods and formulas introduced in chapter \ref{theory}. The script is named \texttt{QuantumTrapVMC.jl} and can be accessed in the \texttt{code} folder at the GitHub page\footnote{https://github.com/flarrek/FYS9411-Project-1} of this project. The script uses names for all variables and parameters consistent with this report, and it is thorougly commented for easy examination. Its overarching structure is presented in section \ref{structure} of this chapter, the computational optimalisation performed during development is summarised in section \ref{optimalisation}. Finally, section \ref{tuning} regards tuning of the algorithm parameters $\delta v$, $\delta g$ and $\delta s$. Firstly though, a brief introduction to the main characteristics of the Julia language is given in section \ref{Julia}.
 
 
 \subsection{The Julia language}\label{Julia}
-The Julia language is a fairly new dynamic programming language launched in 2012 and developed initially by computational scientists at the Massachussets Institute of Technology (MIT), but nowadays by people from all over the world. The goal of the creators was to create a modern high-performance language with ''the speed of C'' and the ''familiar mathematical notation of Matlab'' while being ''as usable for general programming as Python'' and ''as easy for statistics as R''.\cite{JuliaGoal}
+The Julia language is a fairly new dynamic programming language launched in 2012 and developed initially by computational scientists at the Massachussets Institute of Technology (MIT), but today by people from all over the world. The goal of the creators was to create a modern high-performance language with ''the speed of C'' and the ''familiar mathematical notation of Matlab'' while being ''as usable for general programming as Python'' and ''as easy for statistics as R''.\cite{JuliaGoal}
 
-Julia differs from many other popular programming languages in the fact that it is not object-oriented. Instead the user is encouraged to implement polymorphic functions through Julia's \textit{Multiple Dispatch} system, which can then be called and compiled using the native read-eval-print-loop (REPL) on the command line or any supported integrated development environment (IDE). As a dynamic language Julia furthermore relies on garbage-collection (GC) and just-in-time-compilation (JIT), which is user-friendly but can result in slow computation if one is not implementing the algorithms optimally.
+Julia differs from many other popular programming languages in the fact that it is not object-oriented. Instead the user is encouraged to implement polymorphic functions through Julia's \textit{multiple dispatch} system, which can then be called and compiled using the native read-eval-print-loop (REPL) on the command line -- or any supported integrated development environment (IDE) of preference. As a dynamic language Julia furthermore relies on garbage collection (GC) and just-in-time (JIT) compilation, which is user-friendly but can result in long computation times if one is not implementing algorithms optimally.
 
-At first glimpse, Julia code looks quite similar to Python, Matlab and R, and indeed has similar commands and features in many cases. One distinction however is that Julia supports Unicode, which allows the programmer to use Greek letters and much mathematical notation directly in the code. This is handy when implementing programs based on theoretical methods and formulas such as in this project.
+At first glimpse, Julia code looks quite similar to Python, Matlab and R, and indeed has similar commands and features in many cases. One clear distinction is that Julia supports Unicode, which allows the programmer to use Greek letters and much mathematical notation directly in the code. This is handy when implementing programs based on theoretical methods and formulas such as the ones in this project.
 
 
 \subsection{Structure}\label{structure}
-The final Julia script \texttt{QuantumTrapVMC.jl} was written with the system \eqref{Ham} and the VMC theory described in chapter \ref{theory} in mind, and built for flexible usage with the Julia REPL.  The parametric values $D$, $N$, $a$ and $\lambda$ of the quantum harmonic trap are organised in \texttt{QuantumTrap} structs, which can be passed to the main function \texttt{find\_VMC\_energy} along with an array \texttt{Ms} of Monte Carlo cycle numbers to consider. Optional keyword arguments such as \texttt{variation} and \texttt{sampling} (as well as the related \texttt{$\delta$v}, \texttt{$\delta$g} and \texttt{$\delta$s}) can be passed as well to run VMC with a specific choice of the methods discussed in \ref{theory}. There are also keyword arguments \texttt{$\alpha$s} and \texttt{$\beta$s} passing specific values for the variational parameters to consider. For range variation, an array of values for both $\alpha$ and $\beta$ can be considered and plotted, while for gradient descent variation only one initial variational point should be passed. Finally, the keyword arguments \texttt{text\_output} and \texttt{plot\_output} determine what output the script should return to the user.
+The final Julia script \texttt{QuantumTrapVMC.jl} was written with the system \eqref{Ham} and the VMC theory described in chapter \ref{theory} in mind, and built for flexible usage with the Julia REPL.  The parametric values $D$, $N$, $a$ and $\lambda$ of the quantum harmonic trap system are organised in \texttt{QuantumTrap} structs, which can be passed to the main function \texttt{find\_VMC\_energy} along with an array \texttt{Ms} of Monte Carlo cycle numbers to consider. Optional keyword arguments such as \texttt{variation} and \texttt{sampling} (as well as the related \texttt{$\delta$v}, \texttt{$\delta$g} and \texttt{$\delta$s}) can be passed as well, in order to run VMC simulations with a specific choice of the methods discussed in \ref{theory}. There are also keyword arguments \texttt{$\alpha$s} and \texttt{$\beta$s}, passing specific values for the variational parameters to examine. For range variation, an array of values for both $\alpha$ and $\beta$ can be treated and plotted, while for gradient descent variation only one initial variational point should be passed. Finally, the keyword arguments \texttt{text\_output} and \texttt{plot\_output} determine what output the script should return to the user.
 
-The script is parallellised through the native Julia package \texttt{Distributed}, which sets up $T$ parallell processes on the computer. To this end, a separate function \texttt{simulate\_n\_sample} is declared and distributed to all the processes, hereafter referred to as ''worker threads''. Equipped with this function, the $T$ worker threads are the actual workhorses of the VMC computations, setting up individual copies of the quantum trap and running $C = \frac{M}{T}$ Monte Carlo cycles using the chosen methods. At each thread, the $N$ particles are scattered initially following a normal distribution.\footnote{An alternative scattering of the particles into an initial square lattice was also implemented and can be set through the keyword argument \texttt{scattering}, but it lead to the same results and is hence not considered futher in this report.} Sampled values as well as the number of rejected moves are then collected by the main thread, which proceeds to resample the data by blocking, as described in section \ref{Bresampling}. The main thread finally presents the results back to the user through the chosen text and plot output.
+The script is parallellised through the native Julia package \texttt{Distributed}, which sets up $T$ parallell processes on the computer. To this end, a separate function \texttt{simulate\_n\_sample} is declared and distributed to all the processes, hereafter referred to as the ''worker threads''. Equipped with this function, the $T$ worker threads are the actual workhorses of the VMC simulation, setting up individual copies of the quantum trap and running $C = \frac{M}{T}$ Monte Carlo cycles each, using the chosen methods. At each thread, the $N$ particles are scattered initially following a normal distribution.\footnote{An alternative scattering of the particles into an initial square lattice was also implemented and can be set through the keyword argument \texttt{scattering}, but it seems to lead to the same results and is hence not considered futher in this report.} Sampled values as well as the number of rejected moves are then collected by the main thread, which proceeds to resample the data by blocking as described in section \ref{Bresampling}. The main thread finally presents the results back to the user through the chosen text and plot output.
 
-The complementary function \texttt{compare\_VMC\_sampling} was implemented to allow comparison of convergence between the random step and quantum drift sampling methods from sections \ref{Metropolis} and \ref{quantumdrift}. It is called similarly to \texttt{find\_VMC\_energy}, except that the keyword argument \texttt{sampling} is obviously not specified, and it only allows one specific value for each of the variational parameters $\alpha$ and $\beta$.
+The complementary function \texttt{compare\_VMC\_sampling} was implemented to allow comparison of convergence between the random step and quantum drift sampling methods from sections \ref{Metropolis} and \ref{QDsampling}. It is called similarly to \texttt{find\_VMC\_energy}, except that the keyword argument \texttt{sampling} is obviously not specified, and it only allows one specific value for each of the variational parameters $\alpha$ and $\beta$.
 
-As already noted, the script is thoroughly commented, and furthermore assertions were added so that the script objects to invalid input and explains to the user what should be adjusted. Hopefully this makes the script fairly easy to use and examine on its own.
+As already noted, the script is thoroughly commented, and furthermore assertions were added so that it objects to invalid input and explains to the user what should be adjusted. Hopefully this makes the script fairly easy to use and examine on its own.
 
 
 
 \subsection{Optimalisation}\label{optimalisation}
-Thorough numerical optimalisation was performed during development of the Julia script. In this section, some of the computational bottlenecks of Julia and the VMC theory presented in chapter \ref{theory} are discussed, as well as related optimalisation. Table \ref{coptTimes} shows how various optimisation changes to to the code resulted in a total speed-up of about 20 for random step (RS) sampling and 14 for quantum drift (QD) sampling, when compared to the initial code. The times were all measured on a 4-core (8-thread) computer running a reference simulation of 100 million Monte Carlo cycles on a 1D trap with 2 interacting bosons. When the actual results of chapter \ref{results} were calculated however, a 10-core (20-thread) computer was used instead, on which the same reference simulation took only 10 s / 17 s using RS / QD sampling.
+Thorough numerical optimalisation was performed during development of the Julia script. In this section, some of the computational bottlenecks of Julia and the VMC theory presented in chapter \ref{theory} are discussed, as well as related optimalisation. Table \ref{coptTimes} shows how various optimisation changes to to the code resulted in a total speed-up of about 20 for random step (RS) sampling and 14 for quantum drift (QD) sampling, when compared to the initial code. The times were all measured on a 4-core (8-thread) computer running a reference simulation of 100 million Monte Carlo cycles on a 1D trap with 2 interacting bosons. When the actual results of chapter \ref{results} were calculated however, a 10-core (20-thread) computer was used instead, on which the same reference simulation ended up taking only {10 s / 17 s} using RS / QD sampling respectively.
 
 \begin{center}\small
-\captionof{table}{\small Comparison of computation times for a reference simulation after various optimalisations to the Julia script. 'RS' and 'QD' denotes random step and quantum drift sampling, respectively. The times were all measured on a 4-core (8-thread) computer.}
+\captionof{table}{\small Comparison of computation times for a reference simulation after various optimalisations to the Julia script for both random step and quantum drift sampling. The times were all measured on a 4-core (8-thread) computer.}
 \label{coptTimes}
 \begin{tabular}{lcc}
 	\hline\hline
@@ -315,24 +315,24 @@ Thorough numerical optimalisation was performed during development of the Julia 
 \end{tabular}
 \end{center}
 
-The most demanding computation of the VMC method presented here is the calculation of the local energy $\varepsilon$ at each Monte Carlo cycle, calculated with the formula \eqref{compLocalenergy}. One should strive to minimise the amount of times this computation is done. Consider as an example the case when a move has been rejected so that the particles stay in the same configuration as in the last cycle. Then there is no point in recalculating the local energy -- instead the sampled value from the last cycle should simply be copied. This was implemented in the script from the start. 
+The most demanding computation of the VMC method presented is the calculation of the local energy $\varepsilon$ at each Monte Carlo cycle, calculated with the formula \eqref{compLocalenergy}. One should strive to minimise the amount of times this computation is done. Consider as an example the case when a move has been rejected so that the particles stay in the same configuration as in the last cycle. Then there is no point in recalculating the local energy; instead the sampled value from the last cycle should simply be copied. This was implemented in the script from the start. 
 
-Because the formula \eqref{compLocalenergy} involves a triple sum over the particle number $N$, great care should be taken to minimise the required calculations within the sum. Especially the norm calculations of the inter-particle distances $\Delta r_{ij}$ involved should be handled carefully. There are $N^2$ such distances at each cycle, a worst-case naive implementation would perform a total of $N^4$ norm calculations in the double loop and $2N^5$ norm calculations in the triple loop of \eqref{compLocalenergy} if calculated at each loop. A much better approach would be to store the $N^2$ values of $\Delta r_{ij}$ in a matrix and simply access the values in the loops. Then one could furthermore note that many of these values would not even have to be recalculated at each cycle -- because only one particle is moved at each cycle, indeed only the distances related to this particle need to be updated. Matrix storage like this was implemented for $\Delta r$, but also for the vector quantities $\vec{q}$ and $\vec{s}[\Delta r_{ij}] \equiv \vec{s}_{ij}$, as a first optimalisation of the code as shown in table \ref{coptTimes}. The matrix storage is further described in the script comments. When handling matrices in any programming language, one should also keep in mind how matrices are stored in memory and cache. Julia uses the slightly counter-intuitive column-major storage, which means that matrices are stored column-wise in memory. Hence when looping through matrices in Julia, the inner loop should run through the first index of matrices for maximum speed. This is known as \textit{cache-friendly} looping, and was implemented as many places as possible in the script. This is why the matrix quantities are stored as \texttt{$\Delta$R[j,i]}$ = \Delta{r}_{ij}$ and so on.
+Because the formula \eqref{compLocalenergy} involves a triple sum over the particle number $N$, great care should be taken to minimise the required calculations within the sum. Especially the norm calculations of the inter-particle distances $\Delta r_{ij}$ involved should be handled carefully. There are $N^2$ such distances at each cycle, and a worst-case naive implementation would perform a total of $N^4$ norm calculations in the double loop and $2N^5$ norm calculations in the triple loop of \eqref{compLocalenergy}, if actually recalculated at each loop. Consequently, a much better approach would be to \underline{store} the $N^2$ values of $\Delta r_{ij}$ in a matrix and simply \underline{access} the values when needed in the loops. Then one could furthermore note that many of these values would not even have to be recalculated at each cycle; because only one particle is moved at each cycle, indeed only the distances related to this particle need to be updated. Matrix storage like this was implemented for $\Delta r$, but also for the vector quantities $\vec{q}$ and $\vec{s}[\Delta r_{ij}] \equiv \vec{s}_{ij}$, as a first optimalisation of the code as shown in table \ref{coptTimes}. The matrix storage is further described in the script comments. When handling matrices in any programming language, one should also keep in mind how variables are stored in memory and cache. Julia uses the slightly counter-intuitive \textit{column-major} matrix storage, which means that matrices are stored column-wise in memory. Hence when looping through matrices in Julia, the inner loop should run through the first index of matrices for maximum speed. This is known as \textit{cache-friendly} looping, and was implemented as many places as possible in the script. This is why the matrix quantities are stored as \texttt{$\Delta$R[j,i]}$ = \Delta{r}_{ij}$ and so on.
 
-The formula \eqref{compLocalenergy} was initially implemented using native vectorised Julia code including index slice access to vectors and the dot product. However, contrary to some other programming languages such as Python, Julia actually optimalises loops automatically, and vectorised code often turns out to be slower. Rewriting the vectorised code to plain loops, the simulation ran about thrice as fast for both sampling methods, as apparent in table \ref{coptTimes}. This lead to quite a speed-up and should be kept in mind for future Julia implementations.
+The formula \eqref{compLocalenergy} was initially implemented using native vectorised Julia code including index slice access to vectors as well as dot products. However, contrary to some other programming languages such as Python, Julia actually optimalises loops automatically, and vectorised code often turns out to be slower. Rewriting the vectorised code to plain loops, the simulation ran about thrice as fast for both sampling methods, as apparent in table \ref{coptTimes}. This lead to quite a speed-up and should be kept in mind for future Julia implementations.
 
-Of course, parallellisation of the script lead to the greatest speed-up of about 3 in the case of random step sampling and 4 in the case of quantum drift sampling. Julia has two native packages for code parallellisation. The \texttt{Threads} package sets up $T$ threads on the same computer with shared memory, while the \texttt{Distributed} package sets up $T$ separate processes with individual memory. \texttt{Distributed} must hence be used when running calculations on several connected computers. Interestingly, for the simulations of this project the \texttt{Distributed} package turned out to be the fastest by far on a single computer as well. This could be due to the shared-memory aspect of \texttt{Threads} leading to one thread clearing the cache while another thread is still in need of the loaded numbers -- but it might as well be due to bad implementation.
+Of course, parallellisation of the script lead to the greatest speed-up of about 3 in the case of random step sampling and 4 in the case of quantum drift sampling. Julia has two native packages for code parallellisation; the \texttt{Threads} package sets up $T$ threads on the same computer with shared memory, while the \texttt{Distributed} package sets up $T$ separate processes with individual memory. \texttt{Distributed} must hence be used when running calculations on multiple connected computers. Interestingly, for the simulations of this project the \texttt{Distributed} package turned out to be the fastest by far on a single computer as well. This could be due to the shared-memory aspect of \texttt{Threads} leading to one thread clearing the cache while another thread is still in need of the loaded numbers -- but it might as well be due to bad implementation.
 
-Another observation made during optimalisation is that the optimal number of worker threads seemed to be one thread less than the total amount of available threads on the computer. This was the case for both computers used with this project. This makes some sense keeping in mind that there is also a main thread, and although the main thread does not perform as heavy computations as the $T$ worker threads, it would still interfere with the flow of the computations if one of the available threads were to run both the main process and a worker process simultaneously.
+Another observation made during optimalisation is that the optimal number of worker threads $T$ seemed to be \underline{one thread less} than the total amount of available threads on the computer. This was the case for both computers used with this project. It makes some sense keeping in mind that there is also a main thread, and although the main thread does not perform as heavy computations as the worker threads, it would still interfere with the flow of computations if one of the available threads were to run both the main process and a worker process simultaneously.
 
 
 \subsection{Tuning}\label{tuning}
-The VMC method presented in chapter \ref{theory} requires tuning with respect to the gradient descent step size and convergence threshold $\delta v$ and $\delta g$ as well as the sampling step size $\delta s$. Playing around with the two first, good convergence was found for ${\delta v = 0.1}$ and ${\delta g = 0.01}$ in the case of $N = 10$ particles. When increasing to ${N = 50}$ and ${N = 100}$ particles however, the gradient descent variation turned out to be more unstable and required a much smaller ${\delta v = 0.001}$ paired with a larger convergence threshold of ${\delta g = 0.1}$ to reach convergence at all. Unfortunately, this leads to longer runtime as the script then moves slower through the variational parameter space. When calculating the main results in table \ref{BFresults} in section \ref{results}, subsequent gradient descent variations were done with increasing accuracy to reach an adequate optimum. The specific values used during gradient descent for an increasing number of particles can be read from the output included in appendix \ref{output}. As pointed out in section \ref{gradientdescent}, one of the strengths of gradient descent variation is that fewer Monte Carlo cycles can be run at each variational point during descent, and hence the Julia script is set to run a sufficient 10 thousand cycles at each point by default. This number can be specified to something else however, which was done in the last rounds of gradient descent for the main results.
+The VMC method presented in chapter \ref{theory} requires tuning with respect to the gradient descent step size and convergence threshold $\delta v$ and $\delta g$ as well as the sampling step size $\delta s$. Playing around with the two first, good convergence was found for ${\delta v = 0.01}$ and ${\delta g = 0.001}$ in the case of 10 particles. When increasing to 50 and 100 particles however, the gradient descent variation turned out to be more unstable and required a much smaller ${\delta v = 0.0001}$ paired with a larger convergence threshold of ${\delta g = 0.1}$ to reach convergence at all. Unfortunately, this leads to longer runtime as the simulation then moves slower through variational parameter space. When calculating the main results, table \ref{BFresults} in section \ref{results}, subsequent GD variations were done with increasing accuracy to reach an adequate optimum. The specific values used during gradient descent can be read from the output included in appendix \ref{output}. As pointed out in section \ref{gradientdescent}, one of the strengths of GD variation is that fewer Monte Carlo cycles can be run at each variational point \underline{during} descent, and hence the Julia script is set to run a sufficient 10 thousand cycles at each point by default. This number can be specified to something else however, which was done in the last rounds of gradient descent for the main results.
 
-The sampling step size $\delta s$ sets the average length of each proposed move during the Monte Carlo simulation. Because each move is then judged and accepted or rejected based on the acceptance probability \eqref{accprobRS} and \eqref{accprobQD}, this step size will directly influence the number of moves accepted. Defining the \textit{acceptance} as the total percentage of accepted moves throughout the simulation, a good way of tuning $\delta s$ is to consider the acceptance for different values. Choosing \texttt{text\_output="full"}, the acceptance is printed by the Julia script, and in table \ref{tunAcceptances} the resulting acceptances for different values of the sampling step size $\delta s$ is given.
+The sampling step size $\delta s$ sets the average length of each proposed move during the Monte Carlo simulation. Because each move is then judged and accepted or rejected based on the acceptance probability $A$ given by equations \eqref{accprobRS} or \eqref{accprobQD}, this step size will directly influence the number of moves accepted. Defining the \textit{acceptance} as the total percentage of accepted moves throughout the simulation, a good way of tuning $\delta s$ is to consider this acceptance for different values. Choosing \texttt{text\_output="full"}, the acceptance is printed by the Julia script, and in table \ref{tunAcceptances} resulting acceptances for different values of the sampling step size $\delta s$ is given (for a reference system of a spherical 3D trap with 10 non-interacting bosons).
 
 \begin{center}\small
-\captionof{table}{\small Comparison of acceptances for a reference simulation with different values of the sampling step size $\delta s$. 'RS' and 'QD' denote random step and quantum drift sampling, respectively.}
+\captionof{table}{\small Comparison of acceptances for a reference simulation with different values of the sampling step size $\delta s$, using both random step and quantum drift sampling.}
 \label{tunAcceptances}
 \begin{tabular}{cc}
 	\hline\hline
@@ -352,34 +352,32 @@ The sampling step size $\delta s$ sets the average length of each proposed move 
 \end{tabular}
 \end{center}
 
-Note that this tuning is not just about getting as high an acceptance as possible. As apparent from the table one could simply set ${\delta s = 0.0001}$ and obtain 100\% acceptance for both sampling methods at all times. But this corresponds to almost not moving the particles at all. Then the configuration would remain approximately the same for the whole simulation, even when running a very high number of Monte Carlo cycles $M$. In turn, the acceptance ratio of equations \eqref{accprobRS} and \eqref{accprobQD} would be about 1 for each proposed move because the probabilities involved would be almost equal -- and then \textunderscore{of course} all moves would be accepted. However since one has essentially sampled the initial configuration $M$ times, one would not obtain a very good energy estimate $E_\text{VMC}$.
+Note that this tuning is not just about getting as high an acceptance as possible. As apparent from the table one could simply set ${\delta s = 0.0001}$ and obtain 100\% acceptance for both sampling methods at all times. But this corresponds to almost not moving the particles at all, which means that the configuration would remain approximately the same for the whole simulation, even when running a very high number of Monte Carlo cycles $M$. In turn, the acceptance ratio of equations \eqref{accprobRS} and \eqref{accprobQD} would be about 1 for each proposed move because the probabilities involved would be almost equal -- and then \underline{of course} all moves would be accepted. However since one has essentially sampled the initial configuration $M$ times, one would not obtain a good energy estimate $E_\text{VMC}$ at all.
 
-An ideal acceptance, then, is neither 100\% nor 0\% but something inbetween. When calculating the results of chapter \ref{results}, the value ${\delta s = \sqrt{0.4} \approx 0.6325}$ was chosen, corresponding to $\delta t = 0.4$. This lead to an acceptance of about 70\% for random step sampling and 90\% for the more costly quantum drift sampling. 
+An ideal acceptance, then, is neither 100\% nor 0\% but something inbetween. When calculating the results of chapter \ref{results}, the value ${\delta s = \sqrt{0.4} \approx 0.6325}$ was chosen, corresponding to ${\delta t = 0.4}$. This lead to an acceptance of about 70\% for RS sampling and 90\% for the more costly QD sampling.
 
 
 
 \section{Results}\label{results}
-Armed with an optimalised and tuned Julia script built on a sound theoretical foundation, main results of actual simulations are presented and discussed in this chapter. More results can be found in the \texttt{results} folder on GitHub\footnote{https://github.com/flarrek/FYS9411-Project-1}. The result files follow a naming convention which indicates the system and methods involved. It can be generalised as \texttt{\{D\}D\{N\}(i)(e)\_\{variation\}\{SAMPLING\}\{number\}}, in which \texttt{i} is short for "interacting" ($a > 0$) and \texttt{e} is short for "elliptical" ($\lambda \neq 1.0$). As two examples, \texttt{3D10i\_rRS1} denotes the first range-variation, random-step-sampled simulation of a 3-dimensional spherical trap with 10 interacting bosons, while \texttt{3D50ie\_gdQD2} denotes the second gradient-descent-variation, quantum-drift-sampled simulation of a 3-dimensional elliptical trap with 10 interacting bosons. The script is first benchmarked against exact theoretical results of the non-interacting trap in section \ref{benchmarking}. Then, some results for 3-dimensional traps with 10 bosons are examined in section \ref{3D10}, The main results of this report are presented in section \ref{3Die}. They are benchmarked and compared mainly to the results of Schøyen and Winther-Larssen\cite{SWL} from a similar project in 2018, but also the results of DuBois and Glyde\cite{DBG} by which this whole project was originally inspired.
+Armed with an optimalised and tuned Julia script built on sound theoretical foundations, main results of actual simulations are presented and discussed in this chapter. More results can be found in the \texttt{results} folder on GitHub\footnote{https://github.com/flarrek/FYS9411-Project-1}. The result files follow a naming convention which indicates the system and methods involved. It can be generalised as \texttt{\{D\}D\{N\}(i)(e)\_\{variation\}\{SAMPLING\}\{number\}}, in which \texttt{i} is short for "interacting" ($a > 0$) and \texttt{e} is short for "elliptical" ($\lambda \neq 1.0$). As two examples, \texttt{3D10i\_rRS1} denotes the first range-variation, random-step-sampled simulation of a 3-dimensional spherical trap with 10 interacting bosons, while \texttt{3D50ie\_gdQD2} denotes the second gradient-descent-variation, quantum-drift-sampled simulation of a 3-dimensional elliptical trap with 10 interacting bosons. The script is first benchmarked against exact analytical results for non-interacting traps in section \ref{benchmarking}. Then, some results for 3-dimensional traps with 10 bosons are examined in section \ref{3D10} and shown to make sense with respect to the theory of chapter \ref{theory}. The main results of this report are presented in section \ref{3Die}. They are benchmarked and compared mainly to the results of Schøyen and Winther-Larssen\cite{SWL} from a similar project in 2018, but also roughly to the results of DuBois and Glyde\cite{DBG} by which this whole project was originally inspired.
 
-When not stated otherwise, quantum drift sampling was used. Block resampling was used throughout all the following results.
+When not stated otherwise, quantum drift sampling was used in the following. Block resampling was used consequently in all simulations.
 
 \subsection{Analytical benchmarking}\label{benchmarking}
-From the analytic expression \eqref{compLocalenergy} for the local energy $\varepsilon$ it is easily seen that in the non-interacting case, that is $a = 0$, the whole quantity $\vec{s}$ defined in \eqref{s} vanishes and so only the two first terms of \eqref{compLocalenergy} remain. Furthermore, writing out the quantities $U$ and $\vec{q}$ the second term reduces to
+From the analytic expression \eqref{compLocalenergy} for the local energy $\varepsilon$ it is easily seen that in the non-interacting case, that is $a = 0$, the whole quantity $\vec{s}$ defined in \eqref{s} vanishes and hence only the two first terms of \eqref{compLocalenergy} remain. Furthermore, writing out the quantities $U$ and $\vec{q}$ the second term reduces to
 \begin{equation}\nonumber
 	\sum_i^N \frac{1}{2}\left(x^2_i+y^2_i+\lambda^2z^2_i-4\alpha^2\Big(x^2_i+y^2_i+\beta^2z_i^2\Big)\right),
 \end{equation}
-which means that it, too, vanishes for the optimal values $\alpha = 0.5$ and $\beta = \lambda$. Then, the local energy reduces to a constant, which further means that the actual energy of the state is the same:
+which means that it, too, vanishes for the optimal values $\alpha = 0.5$ and $\beta = \lambda$. Then, the local energy reduces to a constant, which further means that the actual energy of the state is also the same:
 \begin{equation}\label{ninGrounergy}
  E = \alpha N \Big(D+(\beta-1)\delta_{D,3}\Big).
 \end{equation}
-It can actually be shown that the values $\alpha = 0.5$ and $\beta = \lambda$ reduce the trial state \eqref{trialstate} to the exact ground state of the system in this case.\cite{SWL} This analytic result served as a first benchmark for the Julia script. And indeed, running the script for a plethora of non-interacting traps of all dimensions, it produced results that match the formula.
+It can actually be shown that the values $\alpha = 0.5$ and $\beta = \lambda$ reduce the trial state \eqref{trialstate} to the exact ground state of the system in this case.\cite{SWL} This analytic result served as a first benchmark for the Julia script developed for this project. And indeed, running the script for a plethora of non-interacting traps of all dimensions, it produced results that match the formula.
 
-The results are available in the folder \texttt{results/analytical benchmarking} on GitHub, but they are not very exciting. Simulations were run for spherical traps with $D \in \{1,2,3\}$ dimensions and $N \in \{1,10,50,100\}$ bosons, and results matching \eqref{ninGrounergy} with exact precision were obtained from both range-variation, random-step-sampled simulations and gradient-descent-variation, quantum-drift-sampled simulations. Despite in-built block resampling throughout, the statistical errors were never above zero. Hence the Julia script seems to be correctly implemented for non-interacting bosons.
+The results are available in the folder \texttt{results/analytical benchmarking} on GitHub, but they are not very exciting. Simulations were run for spherical traps with $D \in \{1,2,3\}$ dimensions and $N \in \{1,10,50,100\}$ bosons, and results matching \eqref{ninGrounergy} with exact precision were obtained from both range-variation, random-step-sampled simulations and gradient-descent-variation, quantum-drift-sampled simulations. Despite block resampling throughout, the statistical errors were never above zero. Hence the Julia script seems to be correctly implemented, at least for non-interacting bosons.
 
 \subsection{3-dimensional traps with 10 bosons}\label{3D10}
-Proceeding to check that the script produced expected results with respect to variation, sampling and resampling, four systems of 3-dimensional traps with 10 bosons were simulated. With the naming convention introduced earlier in this chapter, the systems are encoded as \texttt{3D10}, \texttt{3D10e}, \texttt{3D10i} and \texttt{3D10ie} for readability.
-
-The results of gradient descent variation on all four systems are presented in table \ref{gd3D10}.
+Proceeding to check that the script produces expected results with respect to variation, sampling and resampling, four systems of 3-dimensional traps with 10 bosons were simulated. With the naming convention introduced at the start of this chapter, the systems are encoded as \texttt{3D10}, \texttt{3D10e}, \texttt{3D10i} and \texttt{3D10ie} for readability. The results of gradient descent variation on all four systems are presented in table \ref{gd3D10}.
 
 \begin{center}\small
 \captionof{table}{\small Results of gradient descent variation for four 3-dimensional systems with 10 bosons, using step size ${\delta v = 0.01}$ and threshold ${\delta g = 0.001}$. The spherical systems \texttt{3D10} and \texttt{3D10i} were varied from initial values ${\alpha = 0.4}$ and ${\beta = 1.1}$, while the elliptical systems \texttt{3D10e} and \texttt{3D10ie} were varied from initial values ${\alpha = 0.4}$ and ${\beta = 2.8}$.}
@@ -396,18 +394,18 @@ The results of gradient descent variation on all four systems are presented in t
 \end{tabular}
 \end{center}
 
-For the non-interacting systems it is reassuring to find that even though gradient descent was deliberately started at a variational point away from the exact optimum, the simulation converges towards the true values ${\alpha = 0.5}$ and ${\beta = 1.0}$ or ${\beta = \lambda} = {\sqrt{8} \approx 2.8284}$. When it comes to the interacting systems, it is a good sign that the energies are somewhat close to their non-interacting counterparts. Because the characteristic radius ${a = 0.0043}$ is small and there are few particles in the trap, indeed the interaction should only slightly push the bosons away from the center of the trap, hence increasing the energy just slightly. Note finally that the energy is in general higher for the elliptic trap systems, as the elliptic parameter $\lambda$ effectively reduces the trap size in the z-direction, making the trap smaller and forcing the bosons against the ''potential walls'' to a higher degree. The energy results all make physical sense -- and comparing the results for \texttt{3D10}, \texttt{3D10e} and \texttt{3D10ie} to \cite{SWL} they all match the results of Schøyen and Winther-Larsen to 3-digit precision.\footnote{Results for system \texttt{3D10i} are not presented in \cite{SWL}.}
+For the non-interacting systems it was reassuring to find that even though gradient descent was deliberately started at a variational point away from the exact optimum, the simulations all converge towards the true minima at ${\alpha = 0.5}$ and ${\beta = 1.0}$ or ${\beta = \lambda} = {\sqrt{8} \approx 2.8284}$. The energies of the interacting systems are also somewhat close to their non-interacting counterparts. Because the characteristic radius ${a = 0.0043}$ is small and there are few bosons in the trap, indeed the interaction should only slightly push the particles away from the center of the trap and against the "potential walls" of the system, hence increasing the energy just slightly. The energy is finally higher for the elliptic trap systems in general. These results all make physical sense -- and comparing the results for \texttt{3D10}, \texttt{3D10e} and \texttt{3D10ie} to \cite{SWL} they all match the results of Schøyen and Winther-Larsen to 3-digit precision.\footnote{Results for system \texttt{3D10i} are not presented in \cite{SWL}.}
 
-Looking at the optimal variational points found with gradient descent in table \ref{gd3D10}, bosonic interaction seems to \textit{lower} the optimal value of $\alpha$ and \textit{raise} the optimal value of $\beta$. The first observation has been made before, and is discussed both in \cite{SWL} and in the seminal paper \cite{DBG} by DuBois and Glyde. However the second observation is a novel one. It can not be stated definitely from these few gradient descent results alone, especially not in the spherical case when $\beta$ is "raised" by the same minuscle amount for both traps considered. But it is an observation to examine further.
+Looking now at the optimal variational points found, bosonic interaction seems to \textit{lower} the optimal value of $\alpha$ and \textit{raise} the optimal value of $\beta$. The first observation has been made before, and is discussed in \cite{SWL} -- however the second observation is a novel one. It can not be stated definitely from these few gradient descent results alone, especially not in the spherical case when $\beta$ is "raised" by the same minuscle amount for both traps considered. But it is an observation to examine further.
 
-Building on the results of table \ref{gd3D10}, range variation of energy is plotted for the non-interacting system \texttt{3D10} in figure \ref{var3D10}. As expected, it displays a clear minimum at the optimal value $\alpha = 0.5$. Range variation plotted for the elliptical system \texttt{3D10e} turned out similarly and is not included here. 
+Building on the results of table \ref{gd3D10}, range variation of energy is plotted for the non-interacting system \texttt{3D10} in figure \ref{var3D10}.
 
 \begin{center}
 \includegraphics[width=0.9\columnwidth]{fig3D10_variation}
-\captionof{figure}{\small Range variation for system \texttt{3D10} around the optimal value for $\alpha$, with the value for $\beta$ fixed at the optimal $1.0$. As expected, there is a clear minimum at ${\alpha = 0.5}$.}\label{var3D10}
+\captionof{figure}{\small Range variation for system \texttt{3D10} around the optimal value for $\alpha$, with the value for $\beta$ fixed at the optimal value of $1.0$ and a clear minimum at $\alpha = 0.5$.}\label{var3D10}
 \end{center}
 
-More interesting are the range variation results for the interacting systems given in figures \ref{var3D10i} and \ref{var3D10ie}, which were varied around the optimal values for $\alpha$ and $\beta$ found with the gradient descent variation above. The resulting values for $\alpha$, $\beta$ and $E_\text{VMC}$ are given in table \ref{r3D10}.
+As expected, figure \ref{var3D10} displays a clear minimum at the optimal value $\alpha = 0.5$. Range variation plotted for the elliptical system \texttt{3D10e} turned out similarly and is not included here. More interesting are the range variation results for the interacting systems given in figures \ref{var3D10i} and \ref{var3D10ie}, which were varied around the optimal values for $\alpha$ and $\beta$ found with the gradient descent variation described above. The resulting optimal values for $\alpha$, $\beta$ and $E_\text{VMC}$ are given in table \ref{r3D10}.
 
 \begin{center}
 \includegraphics[width=0.9\columnwidth]{fig3D10i_variation}
@@ -432,42 +430,42 @@ More interesting are the range variation results for the interacting systems giv
 \end{tabular}
 \end{center}
 
-The found VMC energies are almost the same as the ones found with gradient descent, but this is due to the energy being approximately the same in the whole variational areas on the plots as much as due to anything else; while the range variation for \texttt{3D10ie} finds approximately the same minimum to 3-digit precision, the range variation for \texttt{3D10i} actually finds a \textit{new} minimum when compared to the results from gradient descent variation in table \ref{gd3D10}. Furthermore both plots reveal a chaotic energy surface across $\alpha$ and $\beta$, indicating that gradient descent could easily get caught in local minima for these systems. Hence, the apparent raising of $\beta$ discussed above might just be due to the numerical imprecision which is clearly in play here. The effect of bosonic interaction on the optimal values of $\alpha$ and $\beta$ will be examined further in section \ref{3Die}, in which elliptical traps with $10$, $50$ and $100$ interacting bosons are simulated.
+The found VMC energies are almost the same as the ones found with gradient descent, but this is due to the energy being approximately the same in the whole variational areas on the plots as much as due to anything else; while the range variation for \texttt{3D10ie} finds approximately the same minimum to 3-digit precision, the range variation for \texttt{3D10i} actually finds a \underline{new} minimum when compared to table \ref{gd3D10}. Furthermore both plots reveal a chaotic energy surface across $\alpha$ and $\beta$, indicating that gradient descent could easily get caught in local minima for these systems. Hence, the apparent raising of $\beta$ discussed above might just be due to the numerical imprecision which is clearly in play here. The effect of bosonic interaction on the optimal values of $\alpha$ and $\beta$ will be examined further in section \ref{3Die}, in which elliptical traps with $10$, $50$ and $100$ interacting bosons are simulated.
 
-As another test of expected results, the convergence of sampling methods for the interacting systems are plotted and compared in figures \ref{samp3D10i} and \ref{samp3D10ie}. In both plots it is clear that quantum drift sampling converges faster than random step sampling. Already at ${M = 10^4}$ Monte Carlo cycles, the QD-sampled VMC energy has converged pretty well. Looking also at the statistical error ribbons, the (block-resampled) error becomes smaller in the case of QD sampling when compared to RS sampling for $M > 10^3$. It hence seems that the quantum drift method indeed samples the important parts of configuration space earlier on, as discussed in section \ref{quantumdrift}.
+As another test of expected results, the convergence of sampling methods for the interacting systems are plotted and compared in figures \ref{samp3D10i} and \ref{samp3D10ie}. In both plots it is clear that quantum drift sampling converges faster than random step sampling. Already at ${M = 10^4}$ Monte Carlo cycles, the QD-sampled VMC energy has converged pretty well. Looking also at the statistical error ribbons, the block-resampled error is smaller in the case of QD sampling when compared to RS sampling for all $M > 10^3$. It hence seems that the quantum drift method indeed samples the most important parts of configuration space earlier on, as discussed in section \ref{QDsampling}.
 
 \begin{center}
 \includegraphics[width=0.9\columnwidth]{fig3D10i_sampling}
-\captionof{figure}{\small Comparison of sampling methods for the spherical interacting system (\texttt{3D10i}) at the optimal values of $\alpha$ and $\beta$ found with gradient descent variation (table \ref{gd3D10}).}\label{samp3D10i}
+\captionof{figure}{\small Comparison of sampling methods for the spherical interacting system \texttt{3D10i} at the optimal values of $\alpha$ and $\beta$ found with gradient descent variation (table \ref{gd3D10}).}\label{samp3D10i}
 \end{center}
 
 \begin{center}
 \includegraphics[width=0.9\columnwidth]{fig3D10ie_sampling}
-\captionof{figure}{\small Comparison of sampling methods for the elliptical interacting system (\texttt{3D10ie}) around the optimal values for $\alpha$ and $\beta$ found with gradient descent variation (table \ref{gd3D10}).}\label{samp3D10ie}
+\captionof{figure}{\small Comparison of sampling methods for the elliptical interacting system \texttt{3D10ie} around the optimal values for $\alpha$ and $\beta$ found with gradient descent variation (table \ref{gd3D10}).}\label{samp3D10ie}
 \end{center}
 
 Convergence of sampling methods for the non-interacting system \texttt{3D10} is plotted in figure \ref{samp3D10}. As expected after the discussion in section \ref{benchmarking}, both methods show definite convergence with no error, because the local energy is simply constant in this case. The plot for \texttt{3D10e} turned out similarly.\footnote{Actually, the plot for \texttt{3D10e} turned out \underline{almost} similarly, except for some strange numerical behaviour for some values of $M$, as can be seen in the folder \texttt{results} on GitHub. This is thought to be due to catastrophic cancellation or something of the kind.} 
 
 \begin{center}
 \includegraphics[width=0.9\columnwidth]{fig3D10_sampling}
-\captionof{figure}{\small Comparison of sampling methods for the spherical non-interacting system (\texttt{3D10}) around the optimal values for $\alpha$ and $\beta$. Both methods converge from start.}\label{samp3D10}
+\captionof{figure}{\small Comparison of sampling methods for the spherical non-interacting system \texttt{3D10} around the optimal values for $\alpha$ and $\beta$. Both methods converge from start.}\label{samp3D10}
 \end{center}
 
-As a conclusion to this section, block resampling of statistical error for system \texttt{3D10ie} is plotted in figure \ref{block3D10ie}. The resampled error grows with the number of blockings until reaching a maximum (in this case at 8), just as described in section \ref{Bresampling}.
+As a conclusion to this section, block resampling of the statistical error for system \texttt{3D10ie} is plotted in figure \ref{block3D10ie}. The resampled error grows with the number of blockings until reaching a maximum (in this case at 8), just as described in section \ref{Bresampling}.
 
 \begin{center}
 \includegraphics[width=0.9\columnwidth]{fig3D10ie_resampling}
-\captionof{figure}{\small Block resampling of the statistical error for the elliptical interacting system (\texttt{3D10ie}).}\label{block3D10ie}
+\captionof{figure}{\small Block resampling of the statistical error for the elliptical interacting system \texttt{3D10ie}.}\label{block3D10ie}
 \end{center}
 
-Having obtained output from the script which is mostly as expected, the main results of this report are presented in the next section.
+Having obtained output from the script which shows the expected behaviour, the main results of this report are now presented in the next section.
 
 
 
 \subsection{3-dimensional elliptical traps with 10, 50 and 100 interacting bosons}\label{3Die}
-The gradient descent results for 3D traps with 10 bosons in table \ref{gd3D10} seemed to indicate that the optimal value for the elliptic variational parameter $\beta$ is raised when particle interaction is introduced to the system. The lowering of the optimal value for $\alpha$ is reported \cite{SWL}, but since they did not vary $\beta$, instead keeping it constant at ${\beta = \lambda = \sqrt{8} \approx 2.8284}$, they cannot strengthen the claim. Furthermore, the variational plots of figures \ref{var3D10i} and \ref{var3D10ie} display a chaotic energy surface for interacting systems which indicates the possibility of being trapped in a local minimum which could in the worst scenario be a result of statistical or numerical imprecision, rather than being a true minimum at all.
+The gradient descent results for 3D traps with 10 bosons in table \ref{gd3D10} seemed to indicate that the optimal value for the elliptic variational parameter $\beta$ is raised when particle interaction is introduced to the system. The lowering of the optimal value for $\alpha$ is reported \cite{SWL}, but since they did not vary $\beta$, instead keeping it constant at ${\beta = \lambda = \sqrt{8} \approx 2.8284}$, they cannot strengthen the claim. Furthermore, the variational plots of figures \ref{var3D10i} and \ref{var3D10ie} display a chaotic energy surface which indicates the possibility of gradient descent being trapped in a local minimum for such interacting systems. Worse, these minima could be the result of statistical or numerical imprecision, rather than being true minima at all.
 
-To examine the impact of particle interaction on $\beta$, elliptical traps with 10, 50 and 100 (hereafter referred to as \texttt{3D10ie}, \texttt{3D50ie} and \texttt{3D100ie}) interacting bosons are considered in deeper detail. The results of Schøyen and Winther-Larsen for these systems are presented in table \ref{SWLresults}.
+To examine the impact of particle interaction on $\beta$ more thoroughly, elliptical traps with 10, 50 and 100 interacting bosons (hereafter referred to as \texttt{3D10ie}, \texttt{3D50ie} and \texttt{3D100ie}) were treated in detail, using the full machinery of the Julia script. The results of Schøyen and Winther-Larsen for these systems are presented in table \ref{SWLresults}.
 
 \begin{center}\small
 \captionof{table}{\small Results of Schøyen and Winther-Larsen\cite{SWL} for elliptical interacting systems, varying only the variational parameter $\alpha$.}
@@ -483,7 +481,7 @@ To examine the impact of particle interaction on $\beta$, elliptical traps with 
 \end{tabular}
 \end{center}
 
-Starting at the optimal variational point of \cite{SWL}, which was found to be ${\alpha = 0.49744}$ and ${\beta = \lambda} = {\sqrt{8} \approx 2.8284}$, the three systems were gradient descended with the Julia script, varying both $\alpha$ and $\beta$ to search for an even lower VMC energy. All systems were gradient descended using the initial values ${\delta s = 0.0001}$ and $\delta g = 0.1$) given in section \ref{tuning}. As expected, the larger systems \texttt{3D50ie} and \texttt{3D100ie} were found to be more unstable with respect to gradient descent; while the smallest system was varied 4 successive times with increasing precision in $\delta v$ and $\delta g$, the larger systems were only varied 3 and 2 successive times, respectively, as gradient descent variation started to diverge. The full Julia output from the search is included in appendix \ref{gdOutput}, but the results are concisely summed up in table \ref{BFresults}. Interestingly, the raising of $\beta$ is demonstrated also in these results, and furthermore the raising increases with the number of bosons $N$. In fact, the relative raising of $\beta$ seems to be approximately \underline{equal} to the relative lowering of $\alpha$ when compared to the non-interacting optimal values ${\alpha = 0.5}$ and ${\beta = 2.8284}$, with respective relative changes $1\%$, $5\%$ and $9\%$ for 10, 50 and 100 bosons.
+Starting at the optimal variational point of \cite{SWL}, which was found to be ${\alpha = 0.49744}$ (and still ${\beta = \lambda = \sqrt{8}}$, the three systems were gradient descended, varying both $\alpha$ and $\beta$, to search for an even lower VMC energy estimate. All systems were gradient descended using the initial tuning ${\delta s = 0.0001}$ and $\delta g = 0.1$) given in section \ref{tuning}. As expected, the larger systems \texttt{3D50ie} and \texttt{3D100ie} were found to be more unstable with respect to gradient descent; while the smallest system was varied 4 successive times with increasing precision in $\delta v$ and $\delta g$, the larger systems were only varied 3 and 2 successive times, respectively, as the GD variation started to diverge. The full Julia output from the search is included in appendix \ref{gdOutput}, but the results are concisely summed up in table \ref{BFresults}. Interestingly, the raising of $\beta$ is demonstrated also by these results, and furthermore the raising itself \underline{increases} with the number of bosons $N$. In fact, the relative raising of $\beta$ seems to be approximately equal to the relative lowering of $\alpha$ when compared to the non-interacting optimal values ${\alpha = 0.5}$ and ${\beta \approx 2.8284}$, with respective relative changes $1\%$, $5\%$ and $9\%$ for 10, 50 and 100 bosons.
 
 \begin{center}\small
 \captionof{table}{\small Results of subsequent gradient descent for elliptical interacting systems, varying both variational parameters $\alpha$ and $\beta$. Convergence plots and full Julia output of the search is included in appendix \ref{output}.}
@@ -499,9 +497,9 @@ Starting at the optimal variational point of \cite{SWL}, which was found to be $
 \end{tabular}
 \end{center}
 
-The results of table \ref{BFresults} were controlled by running a final 100 million Monte Carlo cycles at the found optimal point, as shown in the output of appendix \label{output}. Convergence plots for all three values are given in section \ref{convOutput}, in which it becomes clear that the VMC energy converges already at 100 thousand Monte Carlo cycles for all three systems. This strengthens the validity of the results, as the last gradient descent was run with 100 thousand Monte Carlo cycles at each variational point. It also indicates that it is sufficient really to run only $M = 10^6$ Monte Carlo cycles in future simulations of these systems, which would of course greatly reduce the computation time.
+The results of table \ref{BFresults} were controlled by running a final 100 million Monte Carlo cycles at the found optimal point, as shown in the output of appendix \ref{output}. Convergence plots for all three values are given in section \ref{convOutput}, in which it becomes clear that the VMC energy converges already at 100 thousand Monte Carlo cycles for all three systems. This strengthens the validity of the results, as the last gradient descent was actually run with 100 thousand Monte Carlo cycles at each variational point. It also indicates that it is sufficient really to run only $M = 10^6$ Monte Carlo cycles in future simulations of these systems, which would of course greatly reduce the computation time.
 
-As one last verification of the Julia script developed here, simulations for all three systems were also run at the optimal point ${\alpha = 0.49744}$ and ${\beta = \lambda = \sqrt{8}}$ found by Schøyen and Winther-Larsen, with the same number of Monte Carlo cycles, ${M = 2^21}$ and a sampling step size ${\delta s = \sqrt{0.1}}$ corresponding to their $\delta t = 0.1$. These parametric values are shown in table \ref{BFSWLresults} to reproduce their energy estimates to 1-digit precision, statistical errors also matching in magnitude.
+As one last verification of the Julia script developed in this project, simulations for all three systems were also run at the optimal point ${\alpha = 0.49744}$ (and ${\beta = \lambda  \sqrt{8}}$ found by Schøyen and Winther-Larsen, with the same number of Monte Carlo cycles, ${M = 2^{21}}$, and a sampling step size ${\delta s = \sqrt{0.1}}$ corresponding to their $\delta t = 0.1$. These parametric values are shown in table \ref{BFSWLresults} to reproduce their energy estimates to 1-digit precision, statistical errors also matching in magnitude.
 
 \begin{center}\small
 \captionof{table}{\small Reproduction of the results of Schøyen and Winther-Larsen\cite{SWL} for elliptical interacting systems, using the same parametric values as them.}
@@ -517,27 +515,27 @@ As one last verification of the Julia script developed here, simulations for all
 \end{tabular}
 \end{center}
 
-Having demonstrated overall consistent results with \cite{SWL}, one should of course also benchmark against other work, but there are not too many other viable results from the exact system of this report to be found. The seminal paper by DuBois and Glyde\cite{DBG} considers a greater range of systems, and does not explicitly present results for the three systems considered in this section. However, rescaling their figure 2 as done below, one clearly sees that the results found in this report, as well as the report of Schøyen and Winther-Larsen\cite{SWL}, both fall within the discernible range of their calculations.
+Having demonstrated overall consistent results with \cite{SWL}, it is fair to say that the results of this report indicate that variation with respect to \underline{both} parameters $\alpha$ and $\beta$ leads to a better VMC energy estimate than simply varying $\alpha$.
+
+One should of course ideally also benchmark the results reported here against other work. However there are not too many other viable results available for the exact systems treated in this project. The seminal paper by DuBois and Glyde\cite{DBG} treats a greater range of systems, and does not explicitly present results for the three systems considered in this section. However, rescaling their figure 2 as done below, one clearly sees that the results found here, as well as the results of Schøyen and Winther-Larsen\cite{SWL}, both fall within the discernible range of their calculations. (Note that the energy in figure \ref{DBGresults} is given per particle, so it should be multiplied respectively by 10, 50 and 100.) In \cite{DBG} they used a Variational Monte Carlo approach similar to the one presented here, and it is reassuring to see that they obtain results of a similar scale to the results in tables \ref{SWLresults} and \ref{BFresults}.
 
 \begin{center}
 \includegraphics[width=0.9\columnwidth]{DBG_results}
-\captionof{figure}{\small A rescaled presentation of the results of DuBois and Glyde\cite{DBG}. Their results discernably matches the results of this report as well as \cite{SWL}.}\label{DBGresults}
+\captionof{figure}{\small A rescaled presentation of the results of DuBois and Glyde\cite{DBG}. Their results discernably match the results of this report as well as \cite{SWL}.}\label{DBGresults}
 \end{center}
-
-Note that the energy in figure \ref{DBGresults} is given per particle, so it should be multiplied respectively by 10, 50 and 100. In \cite{DBG} they used a Variational Monte Carlo approach similar to the one presented here, and it is reassuring to see that they obtain results of a similar scale to the results in tables \ref{SWLresults} and \ref{BFresults}.
 
 
 
 \section{Conclusion}
-In this report, the theoretical and computational development of a Variational Monte Carlo script written in the Julia language was presented, and it was run to both reproduce well-known results and produce novel results regarding the elliptic variational parameter $\beta$. For elliptical traps with 10, 50 and 100 interacting bosons, varying both $\alpha$ and $\beta$ resulted in slightly lower energy estimates than only varying $\alpha$ as done by Schøyen and Winther-Larsen. This lowering encourages further analysis of the optimal $\beta$ which is demonstrated here to be raised by introducing particle interaction to the system. However as the change in optimal $\beta$ is relatively small for the numbers of bosons considered here, the results of this report also validates the usual approximation ${\beta = \lambda}$ at least for systems with fewer than 100 particles.
+In this report, the theoretical and computational development of a Variational Monte Carlo script written in the Julia language has been presented, and the script was run to both reproduce well-known results and produce novel results regarding the elliptic variational parameter $\beta$. For elliptical traps with 10, 50 and 100 interacting bosons, varying both $\alpha$ and $\beta$ resulted in slightly lower energy estimates than only varying $\alpha$ as done earlier by Schøyen and Winther-Larsen\cite{SWL}. This lowering encourages further analysis of the optimal $\beta$, which was demonstrated here to apparently be \underline{raised} by introducing particle interaction to the system. However as the change in optimal $\beta$ was relatively small for the numbers of bosons considered, the results of this report also validate the usual approximation ${\beta = \lambda}$ -- at least for systems with fewer than 100 particles.
 
-Computational optimisation was done to the written Julia script with respect to storage, memory-handling and parallellisation, resulting in a total speed-up of more than 14. As the script was developed as a first-time experience with the Julia language, there is sure to be many more optimalisations which can further increase the speed of simulations. That said however, Julia performance better than C++ has seldom been reported, and only in special cases.
+Computational optimisation was done to the Julia script with respect to storage, memory-handling and parallellisation, resulting in a total speed-up of more than 14. As the script was developed as a first-time experience with the Julia language, there are sure to be many more optimalisations which could further increase the speed of simulations. That said however, Julia performance better than C++ has seldom been reported, and only in special cases.
 
-Despite the Julia script of this project being written with a specific bosonic harmonic trap system in mind, one could fairly easily extend it to perform Variational Monte Carlo on a broader range of quantum systems. To this end, numerical differentiation could be implemented to calculate the local energy for an arbitrary system, although as demonstrated in \cite{SWL} such calculations are prone to be very slow compared to analytical calculations such as the one derived in this report. The script could also be extended to sample and estimate other system obsevables of interest.
+Despite the Julia script of this project being written with a specific bosonic harmonic trap system in mind, one could fairly easily extend it to perform Variational Monte Carlo on a broader range of quantum systems. To this end, numerical differentiation could be implemented to calculate the local energy for \underline{any} arbitrary system, although as demonstrated in \cite{SWL} such calculations are prone to be very slow compared to calculations based on analytical expressions. The script could also be extended to sample and estimate other system observables of interest.
 
-In \cite{NMPGHJP}, the very system considered in this report was treated, analytically and numerically, using Gross-Pitaevskii minimisation as well as Variational Monte Carlo, to obtain results for the ground state and vortex states of an elliptical trap with ${N = 500}$ interacting bosons with a large characteristic radius of ${a = 0.15155}$. Were the Julia script of this project to be further optimalised or run on a supercomputer, it could produce results for their trap system which could both verify their ground state estimates, but also lower the estimates further by raising $\beta$ as demonstrated.
+In \cite{NMPGHJP}, the very family of systems considered here was treated, analytically and numerically, using Gross-Pitaevskii minimisation as well as Variational Monte Carlo, to obtain results for the ground state and vortex states of an elliptical trap containing 500 interacting bosons with a large characteristic radius of ${a = 0.15155}$. Were the Julia script of this project to be further optimalised or run on a supercomputer, it could produce results for their trap system which could both verify their ground state estimates as well as lower the estimates further through the demonstrated raising $\beta$.
 
-While the script is ready for new adventures, the main goal of this project was to get acquainted with the Variational Monte Carlo method, computational optimalisation as well as the Julia language. In that regard it was a success. Braced and inspired by the computational lessons learned here, I will probably use both VMC and Julia again in future research.
+While the script is ready and set for new adventures, the main goal of this project was to get acquainted with the Variational Monte Carlo method, computational optimalisation as well as the Julia language. In that regard it was a success. Braced and inspired by the computational lessons learned here, I will probably use both VMC and Julia again in future research.
 
 \end{multicols}
 \bibliographystyle{unsrt}
@@ -634,15 +632,15 @@ as long as all $\Delta r_{ij} > a$. This last restriction is why the hard-sphere
 
 
 \subsection{Quantum drift $\vec{Q}$}\label{derQuantumdrift}
-Equation \eqref{quantumdrift} defines the quantum drift of the system. From the formulas \eqref{grad_G} and \eqref{grad_F} of section \ref{derLocalenergy} it follows that
+Equation \eqref{quantumdrift} defines the quantum drift of the system. From the formulas \eqref{grad_G} and \eqref{grad_F} of section \ref{derLocalenergy} it quickly follows that
 \begin{align}
 \vec{\nabla}_i\Psi &= \vec{\nabla}_i G F + G \vec{\nabla}_i F \nonumber\\
 &= -2\alpha\Big(\vec{x}_i+\vec{y}_i+\beta\vec{z}_i\Big)\Psi + \sum\limits_{j \neq i}^N \left(\frac{a\Delta\vec{r}_{ij}}{\Delta{r}_{ij}^2(\Delta{r}_{ij}-a)}\right) \Psi \nonumber\\
 \Longrightarrow \frac{\vec{\nabla}_i\Psi}{\Psi} &= -2\alpha\Big(\vec{x}_i+\vec{y}_i+\beta\vec{z}_i\Big) + \sum\limits_{j \neq i}^N \left(\frac{a\Delta\vec{r}_{ij}}{\Delta{r}_{ij}^2(\Delta{r}_{ij}-a)}\right),
 \end{align}
-which means that the analytic expression for the quantum drift becomes
+which means that the analytic expression for the quantum drift is
 \begin{equation}
-\vec{Q}_i[\vec{R}] = \vec{q}[\vec{r}_i] + 4\sum\limits_{j \neq i}^N \vec{s}[\Delta\vec{r}_{ij}]. \label{compQD}
+\vec{Q}_i[\vec{R}] = \vec{q}[\vec{r}_i] + 4\sum\limits_{j \neq i}^N \vec{s}[\Delta\vec{r}_{ij}] \label{compQD}
 \end{equation}
 with the quantities introduced in \eqref{q}–\eqref{s}.
 
@@ -668,12 +666,12 @@ so the variational gradient reduces to
 \begin{equation}
 \frac{\partial\ev{\varepsilon}_\Pi}{\partial\alpha_i} = 2\ev{\frac{\partial\ln\Psi}{\partial\alpha_i}\varepsilon}_\Pi-2\ev{\frac{\partial\ln\Psi}{\partial\alpha_i}}_\Pi\ev{\varepsilon}_\Pi.
 \end{equation}
-The expected values in this expression can be estimated by sampling the quantities
+The expected values in this expression can be estimated, then, by sampling the quantities
 \begin{align}
 \frac{\partial\ln\Psi}{\partial\alpha}[\vec{R}] &= -\sum\limits_i^N \left(x_i^2 + y_i^2 + \beta z_i^2\right), \label{compAlphaGrad}\\
 \frac{\partial\ln\Psi}{\partial\beta}[\vec{R}] &= -\sum\limits_i^N \alpha z_i^2, \label{compBetaGrad}
 \end{align}
-as well as their product with the local energy $\varepsilon$, at each Monte Carlo cycle and then calculate their average when the averages of $\ev{\varepsilon}$ and $\ev{\varepsilon^2}$ are calculated.
+as well as their product with the local energy $\varepsilon$, at each Monte Carlo cycle and then calculate their average at the point in code where the averages of $\ev{\varepsilon}$ and $\ev{\varepsilon^2}$ are calculated.
 
 
 \newpage
@@ -685,19 +683,19 @@ Some of the output from the Julia script developed for the project is included h
 \begin{figure}[h!]
 \centering
 \includegraphics[height=0.22\textheight]{fig3D10ie_BF_convergence}
-\captionof{figure}{\small Convergence of VMC energy for the elliptical trap with 10 interacting bosons (\texttt{3D10ie}).}
+\captionof{figure}{\small Convergence of VMC energy for the elliptical trap with 10 interacting bosons, \texttt{3D10ie}.}
 \end{figure}
 
 \begin{figure}[h!]
 \centering
 \includegraphics[height=0.22\textheight]{fig3D50ie_BF_convergence}
-\captionof{figure}{\small Convergence of VMC energy for the elliptical trap with 50 interacting bosons (\texttt{3D50ie}).}
+\captionof{figure}{\small Convergence of VMC energy for the elliptical trap with 50 interacting bosons, \texttt{3D50ie}.}
 \end{figure}
 
 \begin{figure}[h!]
 \centering
 \includegraphics[height=0.22\textheight]{fig3D100ie_BF_convergence}
-\captionof{figure}{\small Convergence of VMC energy for the elliptical trap with 100 interacting bosons (\texttt{3D100ie}).}
+\captionof{figure}{\small Convergence of VMC energy for the elliptical trap with 100 interacting bosons, \texttt{3D100ie}.}
 \end{figure}
 
 \newpage
@@ -706,19 +704,19 @@ Some of the output from the Julia script developed for the project is included h
 \begin{figure}[h!]
 \centering
 \includegraphics[width=0.8\textwidth]{fig3D10ie_search}
-\captionof{figure}{\small Output from gradient descent variation and subsequent refinement of the elliptical trap with 10 interacting bosons (\texttt{3D10ie}).}
+\captionof{figure}{\small Output from gradient descent variation of the elliptical trap with 10 interacting bosons, \texttt{3D10ie}, along with a final 100-million-cycle Monte Carlo simulation to refine the results.}
 \end{figure}
 
 \begin{figure}[h!]
 \centering
 \includegraphics[width=0.8\textwidth]{fig3D50ie_search}
-\captionof{figure}{\small Output from gradient descent variation and subsequent refinement of the elliptical trap with 50 interacting bosons (\texttt{3D50ie}).}
+\captionof{figure}{\small Output from gradient descent variation of the elliptical trap with 50 interacting bosons, \texttt{3D50ie}, along with a final 100-million-cycle Monte Carlo simulation to refine the results.}
 \end{figure}
 
 \begin{figure}[h!]
 \centering
 \includegraphics[width=0.8\textwidth]{fig3D100ie_search}
-\captionof{figure}{\small Output from gradient descent variation and subsequent refinement of the elliptical trap with 100 interacting bosons (\texttt{3D100ie}).}
+\captionof{figure}{\small Output from gradient descent variation of the elliptical trap with 100 interacting bosons, \texttt{3D100ie}, along with a final 100-million-cycle Monte Carlo simulation to refine the results.}
 \end{figure}
 
 
